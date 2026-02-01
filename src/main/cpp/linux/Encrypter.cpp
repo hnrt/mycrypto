@@ -116,7 +116,7 @@ ByteString Encrypter::Finalize(void* inputBuffer, size_t inputLength)
 		throw std::runtime_error(String::Format("Encryption buffer overrun %lu bytes.", length - static_cast<int>(outputBuffer2.Length())).Ptr());
 	}
 	DEBUG("#Encrypter::Finalize: return=%d\n", length);
-	return outputBuffer1 + outputBuffer2;
+	return outputBuffer1 + ByteString(outputBuffer2, length);
 }
 
 
