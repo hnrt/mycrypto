@@ -16,3 +16,10 @@ buildNumber.properties
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 .settings/
+
+# Local
+.vs/
+bin/
+lincli/obj/
+wincli/obj/
+wincli/wincli.vcxproj.user
