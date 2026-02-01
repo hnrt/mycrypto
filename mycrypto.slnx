@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="wincli/wincli.vcxproj" Id="03dd527e-a82a-4a02-bbbb-cf1b7994b236" />
+</Solution>
