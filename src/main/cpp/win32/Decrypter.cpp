@@ -114,7 +114,7 @@ ByteString Decrypter::Finalize(void* inputBuffer, size_t inputLength)
 			throw std::runtime_error("Decrypted data truncated.");
 		}
 		size_t paddingLength = last[last.Length() - 1];
-		if (paddingLength > AES_BLOCK_LENGTH)
+		if (paddingLength < 1 || AES_BLOCK_LENGTH < paddingLength)
 		{
 			throw std::runtime_error("Decrypted data corrupted.");
 		}
