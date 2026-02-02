@@ -8,10 +8,11 @@
 #include "ByteString.h"
 #include <stddef.h>
 
-#define AES_256_KEY_LENGTH 32
-#define AES_192_KEY_LENGTH 24
+#define AES_BLOCK_LENGTH 16
+
 #define AES_128_KEY_LENGTH 16
-#define AES_IV_LENGTH 16
+#define AES_192_KEY_LENGTH 24
+#define AES_256_KEY_LENGTH 32
 
 #define GCM_IV_LENGTH 12
 #define GCM_TAG_LENGTH 16
@@ -30,6 +31,7 @@ namespace hnrt
 		virtual int GetIvLength() const;
 		virtual int GetTagLength() const;
 		virtual void SetKeyAndIv(void* key, void* iv) = 0;
+		virtual void SetKey(void* key) = 0;
 		virtual void SetAdditionalAuthenticatedData(void* ptr, size_t len) = 0;
 		virtual ByteString Update(void* inputBuffer, size_t inputLength) = 0;
 		virtual ByteString Finalize(void* inputBuffer, size_t inputLength) = 0;

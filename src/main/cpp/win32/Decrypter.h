@@ -10,14 +10,14 @@
 
 namespace hnrt
 {
-	class Encrypter
+	class Decrypter
 		: public CipherPlatform
 	{
 	public:
 
-		Encrypter(CipherMode cm);
-		Encrypter(const Encrypter&) = delete;
-		virtual ~Encrypter();
+		Decrypter(CipherMode cm);
+		Decrypter(const Decrypter&) = delete;
+		virtual ~Decrypter();
 		virtual void SetKeyAndIv(void* key, void* iv);
 		virtual void SetKey(void* key);
 		virtual ByteString Update(void* inputBuffer, size_t inputLength);

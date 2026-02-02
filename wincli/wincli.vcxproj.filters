@@ -75,6 +75,12 @@
     <ClCompile Include="..\src\main\cpp\Cipher.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\main\cpp\win32\Decrypter.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\main\cpp\win32\CipherPlatform.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\main\cpp\MyCryptographyUtilityApplication.h">
@@ -147,6 +153,12 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="..\src\main\cpp\Heap.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\main\cpp\win32\Decrypter.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\main\cpp\win32\CipherPlatform.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

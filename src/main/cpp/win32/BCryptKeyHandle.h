@@ -25,8 +25,8 @@ namespace hnrt
         void Import(const BCryptAlgHandle&, const ByteString&);
         void Close();
         ByteString Export() const;
-        ByteString Encrypt(void*, size_t, void* = nullptr, size_t = 0, ULONG = BCRYPT_BLOCK_PADDING);
-        ByteString Decrypt(void*, size_t, void* = nullptr, size_t = 0, ULONG = BCRYPT_BLOCK_PADDING);
+        ByteString Encrypt(void*, size_t, void* = nullptr, size_t = 0, ULONG = 0);
+        ByteString Decrypt(void*, size_t, void* = nullptr, size_t = 0, ULONG = 0);
         ByteString Encrypt(void*, size_t, BCryptAuthenticatedCipherModeInfo&, void*, size_t);
         ByteString Decrypt(void*, size_t, BCryptAuthenticatedCipherModeInfo&, void*, size_t);
         DWORD get_KeyLength() const;

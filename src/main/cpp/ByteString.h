@@ -23,6 +23,7 @@ namespace hnrt
 		operator const unsigned char* () const;
 		operator unsigned char* ();
 		operator bool() const;
+		ByteString Pkcs7Padding(int blockLength) const;
 
 		static ByteString ParseHex(const char* s);
 

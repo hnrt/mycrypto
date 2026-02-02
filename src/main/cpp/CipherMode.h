@@ -8,7 +8,12 @@ namespace hnrt
 	enum CipherMode
 	{
 		CIPHER_UNSPECIFIED = 0,
-		AES_256_GCM = 1
+		AES_128_CBC = 1,
+		AES_192_CBC,
+		AES_256_CBC,
+		AES_256_GCM,
+		AES_192_GCM,
+		AES_128_GCM,
 	};
 }
 

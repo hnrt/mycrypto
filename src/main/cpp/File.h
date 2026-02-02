@@ -33,6 +33,7 @@ namespace hnrt
 		size_t Read(void* ptr, size_t len);
 		void Write(void* ptr, size_t len);
 		void Flush();
+		void Seek(ptrdiff_t offset, int origin);
 		void Rewind();
 
 		static bool Exists(const char* path);

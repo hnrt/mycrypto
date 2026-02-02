@@ -33,7 +33,12 @@ int main(int argc, char* argv[])
 	try
 	{
 		parameters
-			.Add("aes-256-gcm", NULL, "Sets cipher mode to AES/GCM key=32 iv=12 tag=16.", &MyCryptographyUtilityApplication::SetAes256Gcm)
+			.Add("aes-128-cbc", NULL, "Sets cipher mode to AES/CBC/PKCS5Padding key=16 iv=16.", &MyCryptographyUtilityApplication::SetAes128Cbc)
+			.Add("aes-192-cbc", NULL, "Sets cipher mode to AES/CBC/PKCS5Padding key=24 iv=16.", &MyCryptographyUtilityApplication::SetAes192Cbc)
+			.Add("aes-256-cbc", NULL, "Sets cipher mode to AES/CBC/PKCS5Padding key=32 iv=16.", &MyCryptographyUtilityApplication::SetAes256Cbc)
+			.Add("aes-128-gcm", NULL, "Sets cipher mode to AES/GCM key=16 iv=12 tag=16.", &MyCryptographyUtilityApplication::SetAes128Gcm)
+			.Add("aes-192-gcm", NULL, "Sets cipher mode to AES/GCM key=24 iv=12 tag=16.", &MyCryptographyUtilityApplication::SetAes192Gcm)
+			.Add("aes-256-gcm", NULL, "Sets cipher mode to AES/GCM key=32 iv=12 tag=16. [default]", &MyCryptographyUtilityApplication::SetAes256Gcm)
 			.Add("md5", NULL, "Sets digest mode to MD5 (16 bytes long).", &MyCryptographyUtilityApplication::SetMD5)
 			.Add("sha1", NULL, "Sets digest mode to SHA1 (20 bytes long).", &MyCryptographyUtilityApplication::SetSHA1)
 			.Add("sha256", NULL, "Sets digest mode to SHA256 (32 bytes long).", &MyCryptographyUtilityApplication::SetSHA256)

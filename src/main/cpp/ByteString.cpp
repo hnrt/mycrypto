@@ -166,6 +166,24 @@ ByteString ByteString::ParseHex(const char* s)
 }
 
 
+//
+// PKCS7Padding is defined for 1-byte through 255-byte block while PKCS5Padding is defined for 8 byte block only
+//
+ByteString ByteString::Pkcs7Padding(int blockLength) const
+{
+	if (blockLength < 1 || 255 < blockLength)
+	{
+		throw std::runtime_error("ByteString::Pkcs7Padding: Bad block length.");
+	}
+	size_t payloadLength = Length();
+	size_t paddingLength = static_cast<size_t>(blockLength) - Length() % static_cast<size_t>(blockLength);
+	ByteString result(payloadLength + paddingLength);
+	memcpy_s(result._p, payloadLength, _p, payloadLength);
+	memset(reinterpret_cast<unsigned char*>(result._p) + payloadLength, static_cast<int>(paddingLength), paddingLength);
+	return result;
+}
+
+
 ByteString hnrt::operator + (const ByteString& src1, const ByteString& src2)
 {
 	size_t length1 = src1.Length();

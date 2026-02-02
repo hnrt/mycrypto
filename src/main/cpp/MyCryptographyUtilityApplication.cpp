@@ -41,15 +41,61 @@ MyCryptographyUtilityApplication::~MyCryptographyUtilityApplication()
 }
 
 
+bool MyCryptographyUtilityApplication::SetAes128Cbc(CommandLine& args)
+{
+	DEBUG("#SetAes128Cbc\n");
+	SetCipherMode(CipherMode::AES_128_CBC);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes192Cbc(CommandLine& args)
+{
+	DEBUG("#SetAes192Cbc\n");
+	SetCipherMode(CipherMode::AES_192_CBC);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes256Cbc(CommandLine& args)
+{
+	DEBUG("#SetAes256Cbc\n");
+	SetCipherMode(CipherMode::AES_256_CBC);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes128Gcm(CommandLine& args)
+{
+	DEBUG("#SetAes128Gcm\n");
+	SetCipherMode(CipherMode::AES_128_GCM);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes192Gcm(CommandLine& args)
+{
+	DEBUG("#SetAes192Gcm\n");
+	SetCipherMode(CipherMode::AES_192_GCM);
+	return true;
+}
+
+
 bool MyCryptographyUtilityApplication::SetAes256Gcm(CommandLine& args)
+{
+	DEBUG("#SetAes256Gcm\n");
+	SetCipherMode(CipherMode::AES_256_GCM);
+	return true;
+}
+
+
+void MyCryptographyUtilityApplication::SetCipherMode(CipherMode mode)
 {
 	if (_cipherMode == CipherMode::CIPHER_UNSPECIFIED)
 	{
 		if (_digestMode == DigestMode::DIGEST_UNSPECIFIED)
 		{
-			DEBUG("#SetAes256Gcm\n");
-			_cipherMode = CipherMode::AES_256_GCM;
-			return true;
+			_cipherMode = mode;
 		}
 		else
 		{
@@ -351,78 +397,194 @@ void MyCryptographyUtilityApplication::Encrypt()
 	{
 		throw std::runtime_error("Passphrase/key not specified.");
 	}
+	File inputStream;
+	inputStream.OpenForRead(_inputPath);
+	CipherPtr cipher;
+	cipher.Initialize(_cipherMode, OperationMode::ENCRYPTION);
 	if (_passphrase)
 	{
 		ComputeKey();
 	}
-	if (!_iv)
+	if (cipher->GetIvLength())
 	{
-		ComputeIv();
+		if (!_iv)
+		{
+			ComputeIv();
+		}
+		cipher->SetKeyAndIv(_key, _iv);
+		fprintf(stdout, "KEY=%s\n", (const char*)String::Hex(_key, cipher->GetKeyLength()));
+		fprintf(stdout, "IV=%s\n", (const char*)String::Hex(_iv, cipher->GetIvLength()));
 	}
-	CipherPtr cipher;
-	cipher.Initialize(CipherMode::AES_256_GCM, OperationMode::ENCRYPTION);
-	cipher->SetKeyAndIv(_key, _iv);
-	fprintf(stdout, "KEY=%s\n", (const char*)String::Hex(_key, cipher->GetKeyLength()));
-	fprintf(stdout, "IV=%s\n", (const char*)String::Hex(_iv, cipher->GetIvLength()));
-	if (_aad.Ptr())
+	else
 	{
-		cipher->SetAdditionalAuthenticatedData(_aad, _aad.Length());
-		fprintf(stdout, "AAD=%s\n", (const char*)String::Hex(_aad.Ptr(), _aad.Length()));
+		cipher->SetKey(_key);
+		fprintf(stdout, "KEY=%s\n", (const char*)String::Hex(_key, cipher->GetKeyLength()));
 	}
-	File inputStream;
+	if (cipher->GetTagLength())
+	{
+		if (_aad.Ptr())
+		{
+			cipher->SetAdditionalAuthenticatedData(_aad, _aad.Length());
+			fprintf(stdout, "AAD=%s\n", (const char*)String::Hex(_aad.Ptr(), _aad.Length()));
+		}
+	}
 	File outputStream;
-	inputStream.OpenForRead(_inputPath);
 	outputStream.OpenForWrite(_outputPath);
-	outputStream.Write(_iv, cipher->GetIvLength());
-	size_t inputSize = inputStream.Size(_inputPath);
-	size_t updateCount = inputSize ? (inputSize + BUFFER_SIZE - 1) / BUFFER_SIZE - 1 : 0;
+	if (cipher->GetIvLength())
+	{
+		outputStream.Write(_iv, cipher->GetIvLength());
+	}
+	size_t inputLength = inputStream.Size(_inputPath);
+	if (!inputLength)
+	{
+		throw std::runtime_error("Input file is empty. No content to be encrypted.");
+	}
+	size_t remaining = inputLength;
 	unsigned char plaintext[BUFFER_SIZE];
-	size_t plaintextLength = 0;
+	size_t plaintextLength;
+	ByteString ciphertext;
 	while (true)
 	{
-		plaintextLength += inputStream.Read(plaintext + plaintextLength, BUFFER_SIZE - plaintextLength);
-		if (plaintextLength < BUFFER_SIZE)
+		plaintextLength = inputStream.Read(plaintext, remaining < BUFFER_SIZE ? remaining : BUFFER_SIZE);
+		remaining -= plaintextLength;
+		if (!remaining)
 		{
-			if (feof(inputStream))
-			{
-				ByteString ciphertext = cipher->Finalize(plaintext, plaintextLength);
-				if (ciphertext.Length() > 0)
-				{
-					outputStream.Write(ciphertext, ciphertext.Length());
-				}
-				break;
-			}
-			continue;
-		}
-		else if (!updateCount)
-		{
-			ByteString ciphertext = cipher->Finalize(plaintext, BUFFER_SIZE);
-			if (ciphertext.Length() > 0)
-			{
-				outputStream.Write(ciphertext, ciphertext.Length());
-			}
 			break;
 		}
-		ByteString ciphertext = cipher->Update(plaintext, BUFFER_SIZE);
+		else if (plaintextLength < BUFFER_SIZE)
+		{
+			throw std::runtime_error("Failed to read from input file.");
+		}
+		ciphertext = cipher->Update(plaintext, BUFFER_SIZE);
 		if (ciphertext.Length() > 0)
 		{
 			outputStream.Write(ciphertext, ciphertext.Length());
 		}
-		updateCount--;
-		plaintextLength = 0;
 	}
-	inputStream.Close();
-	ByteString tag = cipher->GetTag();
-	outputStream.Write(tag, tag.Length());
+	ciphertext = cipher->Finalize(plaintext, plaintextLength);
+	if (ciphertext.Length() > 0)
+	{
+		outputStream.Write(ciphertext, ciphertext.Length());
+	}
+	if (cipher->GetTagLength())
+	{
+		ByteString tag = cipher->GetTag();
+		fprintf(stdout, "TAG=%s\n", (const char*)String::Hex(tag, tag.Length()));
+		outputStream.Write(tag, tag.Length());
+	}
 	outputStream.Flush();
 	outputStream.Close();
-	fprintf(stdout, "TAG=%s\n", (const char*)String::Hex(tag, tag.Length()));
-	fprintf(stdout, "Encrypted %d bytes in %d bytes out.\n", static_cast<int>(inputStream.Count()), static_cast<int>(outputStream.Count()));
+	inputStream.Close();
+	fprintf(stdout, "Encrypted: %zu bytes in %zu bytes out\n", inputStream.Count(), outputStream.Count());
 }
 
 
 void MyCryptographyUtilityApplication::Decrypt()
 {
+	if (!_inputPath)
+	{
+		throw std::runtime_error("Input file path is not specified.");
+	}
+	if (!_outputPath)
+	{
+		throw std::runtime_error("Output file path is not specified.");
+	}
+	if (!_passphrase && !_key)
+	{
+		throw std::runtime_error("Passphrase/key not specified.");
+	}
+	File inputStream;
+	inputStream.OpenForRead(_inputPath);
+	CipherPtr cipher;
+	cipher.Initialize(_cipherMode, OperationMode::DECRYPTION);
+	if (_passphrase)
+	{
+		ComputeKey();
+	}
+	size_t inputLength = inputStream.Size(_inputPath);
+	size_t headerLength = cipher->GetIvLength();
+	size_t footerLength = cipher->GetTagLength();
+	size_t envelopeLength = headerLength + footerLength;
+	if (inputLength < envelopeLength)
+	{
+		throw std::runtime_error("Input file too short.");
+	}
+	else if (inputLength == envelopeLength)
+	{
+		throw std::runtime_error("No encrypted content.");
+	}
+	ByteString tag(footerLength);
+	if (footerLength)
+	{
+		inputStream.Seek(-static_cast<ptrdiff_t>(footerLength), SEEK_END);
+		if (inputStream.Read(tag, tag.Length()) != footerLength)
+		{
+			throw std::runtime_error("Failed to load tag.");
+		}
+		inputStream.Rewind();
+	}
+	if (headerLength)
+	{
+		_iv = ByteString(headerLength);
+		if (inputStream.Read(_iv, _iv.Length()) != headerLength)
+		{
+			throw std::runtime_error("Failed to load IV.");
+		}
+	}
+	if (cipher->GetIvLength())
+	{
+		cipher->SetKeyAndIv(_key, _iv);
+		fprintf(stdout, "KEY=%s\n", (const char*)String::Hex(_key, cipher->GetKeyLength()));
+		fprintf(stdout, "IV=%s\n", (const char*)String::Hex(_iv, cipher->GetIvLength()));
+	}
+	else
+	{
+		cipher->SetKey(_key);
+		fprintf(stdout, "KEY=%s\n", (const char*)String::Hex(_key, cipher->GetKeyLength()));
+	}
+	if (tag.Length())
+	{
+		cipher->SetTag(tag, tag.Length());
+		fprintf(stdout, "TAG=%s\n", (const char*)String::Hex(tag, tag.Length()));
+		if (_aad.Ptr())
+		{
+			cipher->SetAdditionalAuthenticatedData(_aad, _aad.Length());
+			fprintf(stdout, "AAD=%s\n", (const char*)String::Hex(_aad.Ptr(), _aad.Length()));
+		}
+	}
+	File outputStream;
+	outputStream.OpenForWrite(_outputPath);
+	size_t remaining = inputLength - envelopeLength;
+	unsigned char ciphertext[BUFFER_SIZE];
+	size_t ciphertextLength;
+	ByteString plaintext;
+	while (true)
+	{
+		ciphertextLength = inputStream.Read(ciphertext, remaining < BUFFER_SIZE ? remaining : BUFFER_SIZE);
+		remaining -= ciphertextLength;
+		if (!remaining)
+		{
+			break;
+		}
+		else if (ciphertextLength < BUFFER_SIZE)
+		{
+			throw std::runtime_error("Failed to read from input file.");
+		}
+		plaintext = cipher->Update(ciphertext, BUFFER_SIZE);
+		if (plaintext.Length() > 0)
+		{
+			outputStream.Write(plaintext, plaintext.Length());
+		}
+	}
+	plaintext = cipher->Finalize(ciphertext, ciphertextLength);
+	if (plaintext.Length() > 0)
+	{
+		outputStream.Write(plaintext, plaintext.Length());
+	}
+	outputStream.Flush();
+	outputStream.Close();
+	inputStream.Close();
+	fprintf(stdout, "Decrypted: %zu bytes in %zu bytes out\n", inputStream.Count(), outputStream.Count());
 }
 
 

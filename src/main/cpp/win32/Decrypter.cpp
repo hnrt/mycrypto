@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Hideaki Narita
 
 
-#include "Encrypter.h"
+#include "Decrypter.h"
 #include "Cipher.h"
 #include "CipherMode.h"
 #include "CipherPlatform.h"
@@ -19,22 +19,22 @@
 using namespace hnrt;
 
 
-Encrypter::Encrypter(CipherMode cm)
+Decrypter::Decrypter(CipherMode cm)
 	: CipherPlatform(cm)
 {
-	DEBUG("#Encrypter::ctor\n");
+	DEBUG("#Decrypter::ctor\n");
 }
 
 
-Encrypter::~Encrypter()
+Decrypter::~Decrypter()
 {
-	DEBUG("#Encrypter::dtor\n");
+	DEBUG("#Decrypter::dtor\n");
 }
 
 
-void Encrypter::SetKeyAndIv(void* key, void* iv)
+void Decrypter::SetKeyAndIv(void* key, void* iv)
 {
-	DEBUG("#Encrypter::SetKeyAndIv\n");
+	DEBUG("#Decrypter::SetKeyAndIv\n");
 	_hA.Open(GetAlgorithm());
 	_hA.SetChainingMode(GetChainingMode());
 	_hK.Generate(_hA, key, GetKeyLength());
@@ -52,7 +52,6 @@ void Encrypter::SetKeyAndIv(void* key, void* iv)
 		Array<DWORD> tagLengths = _hA.AuthTagLengths;
 		_info
 			.SetNonce(iv, GetIvLength())
-			.SetTagSize(GetTagLength())
 			.SetMacContextSize(tagLengths[-1]);
 		memset(_iv, 0, _iv.Length());
 		break;
@@ -63,52 +62,62 @@ void Encrypter::SetKeyAndIv(void* key, void* iv)
 }
 
 
-void Encrypter::SetKey(void* key)
+void Decrypter::SetKey(void* key)
 {
-	DEBUG("#Encrypter::SetKey\n");
+	DEBUG("#Decrypter::SetKey\n");
 	_hA.Open(GetAlgorithm());
 	_hA.SetChainingMode(GetChainingMode());
 	_hK.Generate(_hA, key, GetKeyLength());
 }
 
 
-ByteString Encrypter::Update(void* inputBuffer, size_t inputLength)
+ByteString Decrypter::Update(void* inputBuffer, size_t inputLength)
 {
-	DEBUG("#Encrypter::Update(%zu)\n", inputLength);
+	DEBUG("#Decrypter::Update(%zu)\n", inputLength);
 	if (_info.cbNonce)
 	{
 		_info.SetFlags(BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG);
-		return _hK.Encrypt(inputBuffer, inputLength, _info, _iv, _iv.Length());
+		return _hK.Decrypt(inputBuffer, inputLength, _info, _iv, _iv.Length());
 	}
 	else if (GetIvLength())
 	{
-		return _hK.Encrypt(inputBuffer, inputLength, _iv, _iv.Length());
+		return _hK.Decrypt(inputBuffer, inputLength, _iv, _iv.Length());
 	}
 	else
 	{
-		return _hK.Encrypt(inputBuffer, inputLength);
+		return _hK.Decrypt(inputBuffer, inputLength);
 	}
 }
 
 
-ByteString Encrypter::Finalize(void* inputBuffer, size_t inputLength)
+ByteString Decrypter::Finalize(void* inputBuffer, size_t inputLength)
 {
-	DEBUG("#Encrypter::Finalize(%zu)\n", inputLength);
+	DEBUG("#Decrypter::Finalize(%zu)\n", inputLength);
 	if (_info.cbNonce)
 	{
 		_info.ResetFlags(BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG);
-		return _hK.Encrypt(inputBuffer, inputLength, _info, _iv, _iv.Length());
+		return _hK.Decrypt(inputBuffer, inputLength, _info, _iv, _iv.Length());
 	}
 	else
 	{
-		ByteString last = ByteString(inputBuffer, inputLength).Pkcs7Padding(AES_BLOCK_LENGTH);
+		ByteString last;
 		if (GetIvLength())
 		{
-			return _hK.Encrypt(last, last.Length(), _iv, _iv.Length());
+			last = _hK.Decrypt(inputBuffer, inputLength, _iv, _iv.Length());
 		}
 		else
 		{
-			return _hK.Encrypt(last, last.Length());
+			last = _hK.Decrypt(inputBuffer, inputLength);
 		}
+		if (last.Length() < AES_BLOCK_LENGTH)
+		{
+			throw std::runtime_error("Decrypted data truncated.");
+		}
+		size_t paddingLength = last[last.Length() - 1];
+		if (paddingLength > AES_BLOCK_LENGTH)
+		{
+			throw std::runtime_error("Decrypted data corrupted.");
+		}
+		return ByteString(last, last.Length() - paddingLength);
 	}
 }

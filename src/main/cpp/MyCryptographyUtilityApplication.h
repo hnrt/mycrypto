@@ -19,6 +19,11 @@ namespace hnrt
 		MyCryptographyUtilityApplication();
 		MyCryptographyUtilityApplication(const MyCryptographyUtilityApplication&) = delete;
 		~MyCryptographyUtilityApplication();
+		bool SetAes128Cbc(CommandLine& args);
+		bool SetAes192Cbc(CommandLine& args);
+		bool SetAes256Cbc(CommandLine& args);
+		bool SetAes128Gcm(CommandLine& args);
+		bool SetAes192Gcm(CommandLine& args);
 		bool SetAes256Gcm(CommandLine& args);
 		bool SetMD5(CommandLine& args);
 		bool SetSHA1(CommandLine& args);
@@ -38,6 +43,7 @@ namespace hnrt
 
 	private:
 
+		void SetCipherMode(CipherMode mode);
 		void SetDigestMode(DigestMode mode);
 		void Encrypt();
 		void Decrypt();
