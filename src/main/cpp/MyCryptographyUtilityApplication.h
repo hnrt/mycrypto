@@ -22,9 +22,18 @@ namespace hnrt
 		bool SetAes128Cbc(CommandLine& args);
 		bool SetAes192Cbc(CommandLine& args);
 		bool SetAes256Cbc(CommandLine& args);
+		bool SetAes128Ecb(CommandLine& args);
+		bool SetAes192Ecb(CommandLine& args);
+		bool SetAes256Ecb(CommandLine& args);
+		bool SetAes128Cfb(CommandLine& args);
+		bool SetAes192Cfb(CommandLine& args);
+		bool SetAes256Cfb(CommandLine& args);
 		bool SetAes128Gcm(CommandLine& args);
 		bool SetAes192Gcm(CommandLine& args);
 		bool SetAes256Gcm(CommandLine& args);
+		bool SetAes128Ccm(CommandLine& args);
+		bool SetAes192Ccm(CommandLine& args);
+		bool SetAes256Ccm(CommandLine& args);
 		bool SetMD5(CommandLine& args);
 		bool SetSHA1(CommandLine& args);
 		bool SetSHA256(CommandLine& args);

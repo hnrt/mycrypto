@@ -48,13 +48,22 @@ int Cipher::GetKeyLength() const
 	switch (_cm)
 	{
 	case CipherMode::AES_128_CBC:
+	case CipherMode::AES_128_ECB:
+	case CipherMode::AES_128_CFB:
 	case CipherMode::AES_128_GCM:
+	case CipherMode::AES_128_CCM:
 		return AES_128_KEY_LENGTH;
 	case CipherMode::AES_192_CBC:
+	case CipherMode::AES_192_ECB:
+	case CipherMode::AES_192_CFB:
 	case CipherMode::AES_192_GCM:
+	case CipherMode::AES_192_CCM:
 		return AES_192_KEY_LENGTH;
 	case CipherMode::AES_256_CBC:
+	case CipherMode::AES_256_ECB:
+	case CipherMode::AES_256_CFB:
 	case CipherMode::AES_256_GCM:
+	case CipherMode::AES_256_CCM:
 		return AES_256_KEY_LENGTH;
 	default:
 		throw std::runtime_error("Bad cipher mode.");
@@ -69,13 +78,24 @@ int Cipher::GetIvLength() const
 	case CipherMode::AES_128_CBC:
 	case CipherMode::AES_192_CBC:
 	case CipherMode::AES_256_CBC:
+	case CipherMode::AES_128_CFB:
+	case CipherMode::AES_192_CFB:
+	case CipherMode::AES_256_CFB:
 		return AES_BLOCK_LENGTH;
 	case CipherMode::AES_128_GCM:
 	case CipherMode::AES_192_GCM:
 	case CipherMode::AES_256_GCM:
 		return GCM_IV_LENGTH;
-	default:
+	case CipherMode::AES_128_CCM:
+	case CipherMode::AES_192_CCM:
+	case CipherMode::AES_256_CCM:
+		return CCM_IV_LENGTH;
+	case CipherMode::AES_128_ECB:
+	case CipherMode::AES_192_ECB:
+	case CipherMode::AES_256_ECB:
 		return 0;
+	default:
+		throw std::runtime_error("Bad cipher mode.");
 	}
 }
 
@@ -88,6 +108,10 @@ int Cipher::GetTagLength() const
 	case CipherMode::AES_192_GCM:
 	case CipherMode::AES_256_GCM:
 		return GCM_TAG_LENGTH;
+	case CipherMode::AES_128_CCM:
+	case CipherMode::AES_192_CCM:
+	case CipherMode::AES_256_CCM:
+		return CCM_TAG_LENGTH;
 	default:
 		return 0;
 	}

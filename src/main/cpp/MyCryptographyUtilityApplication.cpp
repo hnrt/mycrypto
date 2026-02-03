@@ -65,6 +65,54 @@ bool MyCryptographyUtilityApplication::SetAes256Cbc(CommandLine& args)
 }
 
 
+bool MyCryptographyUtilityApplication::SetAes128Ecb(CommandLine& args)
+{
+	DEBUG("#SetAes128Ecb\n");
+	SetCipherMode(CipherMode::AES_128_ECB);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes192Ecb(CommandLine& args)
+{
+	DEBUG("#SetAes192Ecb\n");
+	SetCipherMode(CipherMode::AES_192_ECB);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes256Ecb(CommandLine& args)
+{
+	DEBUG("#SetAes256Ecb\n");
+	SetCipherMode(CipherMode::AES_256_ECB);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes128Cfb(CommandLine& args)
+{
+	DEBUG("#SetAes128Cfb\n");
+	SetCipherMode(CipherMode::AES_128_CFB);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes192Cfb(CommandLine& args)
+{
+	DEBUG("#SetAes192Cfb\n");
+	SetCipherMode(CipherMode::AES_192_CFB);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes256Cfb(CommandLine& args)
+{
+	DEBUG("#SetAes256Cfb\n");
+	SetCipherMode(CipherMode::AES_256_CFB);
+	return true;
+}
+
+
 bool MyCryptographyUtilityApplication::SetAes128Gcm(CommandLine& args)
 {
 	DEBUG("#SetAes128Gcm\n");
@@ -85,6 +133,30 @@ bool MyCryptographyUtilityApplication::SetAes256Gcm(CommandLine& args)
 {
 	DEBUG("#SetAes256Gcm\n");
 	SetCipherMode(CipherMode::AES_256_GCM);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes128Ccm(CommandLine& args)
+{
+	DEBUG("#SetAes128Ccm\n");
+	SetCipherMode(CipherMode::AES_128_CCM);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes192Ccm(CommandLine& args)
+{
+	DEBUG("#SetAes192Ccm\n");
+	SetCipherMode(CipherMode::AES_192_CCM);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes256Ccm(CommandLine& args)
+{
+	DEBUG("#SetAes256Ccm\n");
+	SetCipherMode(CipherMode::AES_256_CCM);
 	return true;
 }
 
@@ -441,27 +513,26 @@ void MyCryptographyUtilityApplication::Encrypt()
 	}
 	size_t remaining = inputLength;
 	unsigned char plaintext[BUFFER_SIZE];
-	size_t plaintextLength;
-	ByteString ciphertext;
-	while (true)
+	while (BUFFER_SIZE < remaining)
 	{
-		plaintextLength = inputStream.Read(plaintext, remaining < BUFFER_SIZE ? remaining : BUFFER_SIZE);
-		remaining -= plaintextLength;
-		if (!remaining)
-		{
-			break;
-		}
-		else if (plaintextLength < BUFFER_SIZE)
+		size_t plaintextLength = inputStream.Read(plaintext, BUFFER_SIZE);
+		if (plaintextLength < BUFFER_SIZE)
 		{
 			throw std::runtime_error("Failed to read from input file.");
 		}
-		ciphertext = cipher->Update(plaintext, BUFFER_SIZE);
+		ByteString ciphertext = cipher->Update(plaintext, BUFFER_SIZE);
 		if (ciphertext.Length() > 0)
 		{
 			outputStream.Write(ciphertext, ciphertext.Length());
 		}
+		remaining -= BUFFER_SIZE;
 	}
-	ciphertext = cipher->Finalize(plaintext, plaintextLength);
+	size_t plaintextLength = inputStream.Read(plaintext, remaining);
+	if (plaintextLength < remaining)
+	{
+		throw std::runtime_error("Failed to read from input file.");
+	}
+	ByteString ciphertext = cipher->Finalize(plaintext, remaining);
 	if (ciphertext.Length() > 0)
 	{
 		outputStream.Write(ciphertext, ciphertext.Length());
@@ -556,27 +627,26 @@ void MyCryptographyUtilityApplication::Decrypt()
 	outputStream.OpenForWrite(_outputPath);
 	size_t remaining = inputLength - envelopeLength;
 	unsigned char ciphertext[BUFFER_SIZE];
-	size_t ciphertextLength;
-	ByteString plaintext;
-	while (true)
+	while (BUFFER_SIZE < remaining)
 	{
-		ciphertextLength = inputStream.Read(ciphertext, remaining < BUFFER_SIZE ? remaining : BUFFER_SIZE);
-		remaining -= ciphertextLength;
-		if (!remaining)
-		{
-			break;
-		}
-		else if (ciphertextLength < BUFFER_SIZE)
+		size_t ciphertextLength = inputStream.Read(ciphertext, BUFFER_SIZE);
+		if (ciphertextLength < BUFFER_SIZE)
 		{
 			throw std::runtime_error("Failed to read from input file.");
 		}
-		plaintext = cipher->Update(ciphertext, BUFFER_SIZE);
+		ByteString plaintext = cipher->Update(ciphertext, BUFFER_SIZE);
 		if (plaintext.Length() > 0)
 		{
 			outputStream.Write(plaintext, plaintext.Length());
 		}
+		remaining -= BUFFER_SIZE;
 	}
-	plaintext = cipher->Finalize(ciphertext, ciphertextLength);
+	size_t ciphertextLength = inputStream.Read(ciphertext, remaining);
+	if (ciphertextLength < remaining)
+	{
+		throw std::runtime_error("Failed to read from input file.");
+	}
+	ByteString plaintext = cipher->Finalize(ciphertext, remaining);
 	if (plaintext.Length() > 0)
 	{
 		outputStream.Write(plaintext, plaintext.Length());

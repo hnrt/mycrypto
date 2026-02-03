@@ -40,9 +40,18 @@ LPCWSTR CipherPlatform::GetAlgorithm()
 	case CipherMode::AES_128_CBC:
 	case CipherMode::AES_192_CBC:
 	case CipherMode::AES_256_CBC:
+	case CipherMode::AES_128_ECB:
+	case CipherMode::AES_192_ECB:
+	case CipherMode::AES_256_ECB:
+	case CipherMode::AES_128_CFB:
+	case CipherMode::AES_192_CFB:
+	case CipherMode::AES_256_CFB:
 	case CipherMode::AES_128_GCM:
 	case CipherMode::AES_192_GCM:
 	case CipherMode::AES_256_GCM:
+	case CipherMode::AES_128_CCM:
+	case CipherMode::AES_192_CCM:
+	case CipherMode::AES_256_CCM:
 		return BCRYPT_AES_ALGORITHM;
 	default:
 		throw std::runtime_error("Bad cipher mode.");
@@ -58,10 +67,22 @@ LPCWSTR CipherPlatform::GetChainingMode()
 	case CipherMode::AES_192_CBC:
 	case CipherMode::AES_256_CBC:
 		return BCRYPT_CHAIN_MODE_CBC;
+	case CipherMode::AES_128_ECB:
+	case CipherMode::AES_192_ECB:
+	case CipherMode::AES_256_ECB:
+		return BCRYPT_CHAIN_MODE_ECB;
+	case CipherMode::AES_128_CFB:
+	case CipherMode::AES_192_CFB:
+	case CipherMode::AES_256_CFB:
+		return BCRYPT_CHAIN_MODE_CFB;
 	case CipherMode::AES_128_GCM:
 	case CipherMode::AES_192_GCM:
 	case CipherMode::AES_256_GCM:
 		return BCRYPT_CHAIN_MODE_GCM;
+	case CipherMode::AES_128_CCM:
+	case CipherMode::AES_192_CCM:
+	case CipherMode::AES_256_CCM:
+		return BCRYPT_CHAIN_MODE_CCM;
 	default:
 		throw std::runtime_error("Bad cipher mode.");
 	}

@@ -17,6 +17,9 @@
 #define GCM_IV_LENGTH 12
 #define GCM_TAG_LENGTH 16
 
+#define CCM_IV_LENGTH 12
+#define CCM_TAG_LENGTH 16
+
 namespace hnrt
 {
 	class Cipher
