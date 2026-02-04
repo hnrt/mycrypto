@@ -452,6 +452,8 @@ void MyCryptographyUtilityApplication::Run()
 
 void MyCryptographyUtilityApplication::Rollback()
 {
+	File::Delete(_outputPath);
+	DEBUG("#File::Delete(%s)\n", _outputPath.Ptr());
 }
 
 
@@ -484,21 +486,13 @@ void MyCryptographyUtilityApplication::Encrypt()
 			ComputeIv();
 		}
 		cipher->SetKeyAndIv(_key, _iv);
-		fprintf(stdout, "KEY=%s\n", (const char*)String::Hex(_key, cipher->GetKeyLength()));
-		fprintf(stdout, "IV=%s\n", (const char*)String::Hex(_iv, cipher->GetIvLength()));
+		fprintf(stdout, "KEY=%s\n", String::Hex(_key, cipher->GetKeyLength()).Ptr());
+		fprintf(stdout, "IV=%s\n", String::Hex(_iv, cipher->GetIvLength()).Ptr());
 	}
 	else
 	{
 		cipher->SetKey(_key);
-		fprintf(stdout, "KEY=%s\n", (const char*)String::Hex(_key, cipher->GetKeyLength()));
-	}
-	if (cipher->GetTagLength())
-	{
-		if (_aad.Ptr())
-		{
-			cipher->SetAdditionalAuthenticatedData(_aad, _aad.Length());
-			fprintf(stdout, "AAD=%s\n", (const char*)String::Hex(_aad.Ptr(), _aad.Length()));
-		}
+		fprintf(stdout, "KEY=%s\n", String::Hex(_key, cipher->GetKeyLength()).Ptr());
 	}
 	File outputStream;
 	outputStream.OpenForWrite(_outputPath);
@@ -510,6 +504,14 @@ void MyCryptographyUtilityApplication::Encrypt()
 	if (!inputLength)
 	{
 		throw std::runtime_error("Input file is empty. No content to be encrypted.");
+	}
+	if (cipher->GetTagLength())
+	{
+		if (_aad)
+		{
+			cipher->SetAdditionalAuthenticatedData(_aad, _aad.Length());
+			fprintf(stdout, "AAD=%s\n", String::Hex(_aad.Ptr(), _aad.Length()).Ptr());
+		}
 	}
 	size_t remaining = inputLength;
 	unsigned char plaintext[BUFFER_SIZE];
@@ -540,7 +542,7 @@ void MyCryptographyUtilityApplication::Encrypt()
 	if (cipher->GetTagLength())
 	{
 		ByteString tag = cipher->GetTag();
-		fprintf(stdout, "TAG=%s\n", (const char*)String::Hex(tag, tag.Length()));
+		fprintf(stdout, "TAG=%s\n", String::Hex(tag, tag.Length()).Ptr());
 		outputStream.Write(tag, tag.Length());
 	}
 	outputStream.Flush();
@@ -605,22 +607,22 @@ void MyCryptographyUtilityApplication::Decrypt()
 	if (cipher->GetIvLength())
 	{
 		cipher->SetKeyAndIv(_key, _iv);
-		fprintf(stdout, "KEY=%s\n", (const char*)String::Hex(_key, cipher->GetKeyLength()));
-		fprintf(stdout, "IV=%s\n", (const char*)String::Hex(_iv, cipher->GetIvLength()));
+		fprintf(stdout, "KEY=%s\n", String::Hex(_key, cipher->GetKeyLength()).Ptr());
+		fprintf(stdout, "IV=%s\n", String::Hex(_iv, cipher->GetIvLength()).Ptr());
 	}
 	else
 	{
 		cipher->SetKey(_key);
-		fprintf(stdout, "KEY=%s\n", (const char*)String::Hex(_key, cipher->GetKeyLength()));
+		fprintf(stdout, "KEY=%s\n", String::Hex(_key, cipher->GetKeyLength()).Ptr());
 	}
 	if (tag.Length())
 	{
 		cipher->SetTag(tag, tag.Length());
-		fprintf(stdout, "TAG=%s\n", (const char*)String::Hex(tag, tag.Length()));
-		if (_aad.Ptr())
+		fprintf(stdout, "TAG=%s\n", String::Hex(tag, tag.Length()).Ptr());
+		if (_aad)
 		{
 			cipher->SetAdditionalAuthenticatedData(_aad, _aad.Length());
-			fprintf(stdout, "AAD=%s\n", (const char*)String::Hex(_aad.Ptr(), _aad.Length()));
+			fprintf(stdout, "AAD=%s\n", String::Hex(_aad.Ptr(), _aad.Length()).Ptr());
 		}
 	}
 	File outputStream;

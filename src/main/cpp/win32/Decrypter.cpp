@@ -43,16 +43,19 @@ void Decrypter::SetKeyAndIv(void* key, void* iv)
 	case CipherMode::AES_128_CBC:
 	case CipherMode::AES_192_CBC:
 	case CipherMode::AES_256_CBC:
+	case CipherMode::AES_128_CFB:
+	case CipherMode::AES_192_CFB:
+	case CipherMode::AES_256_CFB:
 		memcpy(_iv, iv, _iv.Length());
 		break;
 	case CipherMode::AES_128_GCM:
 	case CipherMode::AES_192_GCM:
 	case CipherMode::AES_256_GCM:
+	case CipherMode::AES_128_CCM:
+	case CipherMode::AES_192_CCM:
+	case CipherMode::AES_256_CCM:
 	{
-		Array<DWORD> tagLengths = _hA.AuthTagLengths;
-		_info
-			.SetNonce(iv, GetIvLength())
-			.SetMacContextSize(tagLengths[-1]);
+		_info.SetNonce(iv, GetIvLength());
 		memset(_iv, 0, _iv.Length());
 		break;
 	}
@@ -76,6 +79,10 @@ ByteString Decrypter::Update(void* inputBuffer, size_t inputLength)
 	DEBUG("#Decrypter::Update(%zu)\n", inputLength);
 	if (_info.cbNonce)
 	{
+		if (!_info.cbMacContext)
+		{
+			_info.SetMacContextSize(AES_BLOCK_LENGTH);
+		}
 		_info.SetFlags(BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG);
 		return _hK.Decrypt(inputBuffer, inputLength, _info, _iv, _iv.Length());
 	}

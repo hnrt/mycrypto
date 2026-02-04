@@ -142,6 +142,28 @@ String& String::operator = (const String& src)
 }
 
 
+String& String::operator += (const String& src)
+{
+	if (src.Length())
+	{
+		if (Length())
+		{
+			String dst(nullptr, Length() + src.Length());
+			memcpy(dst._p, _p, Length());
+			memcpy(reinterpret_cast<unsigned char*>(dst._p) + Length(), src._p, src.Length());
+			Release();
+			_p = dst.AddRef();
+		}
+		else
+		{
+			Release();
+			_p = src.AddRef();
+		}
+	}
+	return *this;
+}
+
+
 bool String::operator == (const String& str) const
 {
 	return !strcmp(_p ? _p : "", str._p ? str._p : "");

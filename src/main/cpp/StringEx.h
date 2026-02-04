@@ -19,6 +19,7 @@ namespace hnrt
 		char* Ptr();
 		size_t Length() const;
 		String& operator = (const String& src);
+		String& operator += (const String& src);
 		operator const char* () const;
 		operator char* ();
 		operator bool() const;
