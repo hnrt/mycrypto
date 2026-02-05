@@ -178,7 +178,7 @@ ByteString ByteString::Pkcs7Padding(int blockLength) const
 	size_t payloadLength = Length();
 	size_t paddingLength = static_cast<size_t>(blockLength) - Length() % static_cast<size_t>(blockLength);
 	ByteString result(payloadLength + paddingLength);
-	memcpy_s(result._p, payloadLength, _p, payloadLength);
+	memcpy(result._p, _p, payloadLength);
 	memset(reinterpret_cast<unsigned char*>(result._p) + payloadLength, static_cast<int>(paddingLength), paddingLength);
 	return result;
 }

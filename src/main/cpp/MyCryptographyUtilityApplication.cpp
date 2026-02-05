@@ -41,30 +41,6 @@ MyCryptographyUtilityApplication::~MyCryptographyUtilityApplication()
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes128Cbc(CommandLine& args)
-{
-	DEBUG("#SetAes128Cbc\n");
-	SetCipherMode(CipherMode::AES_128_CBC);
-	return true;
-}
-
-
-bool MyCryptographyUtilityApplication::SetAes192Cbc(CommandLine& args)
-{
-	DEBUG("#SetAes192Cbc\n");
-	SetCipherMode(CipherMode::AES_192_CBC);
-	return true;
-}
-
-
-bool MyCryptographyUtilityApplication::SetAes256Cbc(CommandLine& args)
-{
-	DEBUG("#SetAes256Cbc\n");
-	SetCipherMode(CipherMode::AES_256_CBC);
-	return true;
-}
-
-
 bool MyCryptographyUtilityApplication::SetAes128Ecb(CommandLine& args)
 {
 	DEBUG("#SetAes128Ecb\n");
@@ -89,50 +65,146 @@ bool MyCryptographyUtilityApplication::SetAes256Ecb(CommandLine& args)
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes128Cfb(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes128Cbc(CommandLine& args)
 {
-	DEBUG("#SetAes128Cfb\n");
-	SetCipherMode(CipherMode::AES_128_CFB);
+	DEBUG("#SetAes128Cbc\n");
+	SetCipherMode(CipherMode::AES_128_CBC);
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes192Cfb(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes192Cbc(CommandLine& args)
 {
-	DEBUG("#SetAes192Cfb\n");
-	SetCipherMode(CipherMode::AES_192_CFB);
+	DEBUG("#SetAes192Cbc\n");
+	SetCipherMode(CipherMode::AES_192_CBC);
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes256Cfb(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes256Cbc(CommandLine& args)
 {
-	DEBUG("#SetAes256Cfb\n");
-	SetCipherMode(CipherMode::AES_256_CFB);
+	DEBUG("#SetAes256Cbc\n");
+	SetCipherMode(CipherMode::AES_256_CBC);
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes128Gcm(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes128Cfb1(CommandLine& args)
 {
-	DEBUG("#SetAes128Gcm\n");
-	SetCipherMode(CipherMode::AES_128_GCM);
+	DEBUG("#SetAes128Cfb1\n");
+	SetCipherMode(CipherMode::AES_128_CFB1);
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes192Gcm(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes192Cfb1(CommandLine& args)
 {
-	DEBUG("#SetAes192Gcm\n");
-	SetCipherMode(CipherMode::AES_192_GCM);
+	DEBUG("#SetAes192Cfb1\n");
+	SetCipherMode(CipherMode::AES_192_CFB1);
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes256Gcm(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes256Cfb1(CommandLine& args)
 {
-	DEBUG("#SetAes256Gcm\n");
-	SetCipherMode(CipherMode::AES_256_GCM);
+	DEBUG("#SetAes256Cfb1\n");
+	SetCipherMode(CipherMode::AES_256_CFB1);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes128Cfb8(CommandLine& args)
+{
+	DEBUG("#SetAes128Cfb8\n");
+	SetCipherMode(CipherMode::AES_128_CFB8);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes192Cfb8(CommandLine& args)
+{
+	DEBUG("#SetAes192Cfb8\n");
+	SetCipherMode(CipherMode::AES_192_CFB8);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes256Cfb8(CommandLine& args)
+{
+	DEBUG("#SetAes256Cfb8\n");
+	SetCipherMode(CipherMode::AES_256_CFB8);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes128Cfb128(CommandLine& args)
+{
+	DEBUG("#SetAes128Cfb128\n");
+	SetCipherMode(CipherMode::AES_128_CFB128);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes192Cfb128(CommandLine& args)
+{
+	DEBUG("#SetAes192Cfb128\n");
+	SetCipherMode(CipherMode::AES_192_CFB128);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes256Cfb128(CommandLine& args)
+{
+	DEBUG("#SetAes256Cfb128\n");
+	SetCipherMode(CipherMode::AES_256_CFB128);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes128Ofb(CommandLine& args)
+{
+	DEBUG("#SetAes128Ofb\n");
+	SetCipherMode(CipherMode::AES_128_OFB);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes192Ofb(CommandLine& args)
+{
+	DEBUG("#SetAes192Ofb\n");
+	SetCipherMode(CipherMode::AES_192_OFB);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes256Ofb(CommandLine& args)
+{
+	DEBUG("#SetAes256Ofb\n");
+	SetCipherMode(CipherMode::AES_256_OFB);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes128Ctr(CommandLine& args)
+{
+	DEBUG("#SetAes128Ctr\n");
+	SetCipherMode(CipherMode::AES_128_CTR);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes192Ctr(CommandLine& args)
+{
+	DEBUG("#SetAes192Ctr\n");
+	SetCipherMode(CipherMode::AES_192_CTR);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes256Ctr(CommandLine& args)
+{
+	DEBUG("#SetAes256Ctr\n");
+	SetCipherMode(CipherMode::AES_256_CTR);
 	return true;
 }
 
@@ -157,6 +229,30 @@ bool MyCryptographyUtilityApplication::SetAes256Ccm(CommandLine& args)
 {
 	DEBUG("#SetAes256Ccm\n");
 	SetCipherMode(CipherMode::AES_256_CCM);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes128Gcm(CommandLine& args)
+{
+	DEBUG("#SetAes128Gcm\n");
+	SetCipherMode(CipherMode::AES_128_GCM);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes192Gcm(CommandLine& args)
+{
+	DEBUG("#SetAes192Gcm\n");
+	SetCipherMode(CipherMode::AES_192_GCM);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetAes256Gcm(CommandLine& args)
+{
+	DEBUG("#SetAes256Gcm\n");
+	SetCipherMode(CipherMode::AES_256_GCM);
 	return true;
 }
 
@@ -507,6 +603,7 @@ void MyCryptographyUtilityApplication::Encrypt()
 	}
 	if (cipher->GetTagLength())
 	{
+		cipher->SetPayloadLength(inputLength);
 		if (_aad)
 		{
 			cipher->SetAdditionalAuthenticatedData(_aad, _aad.Length());
@@ -586,6 +683,7 @@ void MyCryptographyUtilityApplication::Decrypt()
 	{
 		throw std::runtime_error("No encrypted content.");
 	}
+	size_t payloadLength = inputLength - envelopeLength;
 	ByteString tag(footerLength);
 	if (footerLength)
 	{
@@ -619,6 +717,7 @@ void MyCryptographyUtilityApplication::Decrypt()
 	{
 		cipher->SetTag(tag, tag.Length());
 		fprintf(stdout, "TAG=%s\n", String::Hex(tag, tag.Length()).Ptr());
+		cipher->SetPayloadLength(payloadLength);
 		if (_aad)
 		{
 			cipher->SetAdditionalAuthenticatedData(_aad, _aad.Length());
@@ -627,7 +726,7 @@ void MyCryptographyUtilityApplication::Decrypt()
 	}
 	File outputStream;
 	outputStream.OpenForWrite(_outputPath);
-	size_t remaining = inputLength - envelopeLength;
+	size_t remaining = payloadLength;
 	unsigned char ciphertext[BUFFER_SIZE];
 	while (BUFFER_SIZE < remaining)
 	{

@@ -145,6 +145,14 @@ void File::Flush()
 }
 
 
+void File::Seek(ptrdiff_t offset, int origin)
+{
+	if (fseek(stream, offset, origin))
+	{
+		throw std::runtime_error(String::Format("Failed to seek the pointer of \"%s\".", path));
+	}
+}
+
 void File::Rewind()
 {
 	rewind(stream);

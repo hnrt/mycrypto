@@ -1,14 +1,12 @@
 // Copyright (C) 2026 Hideaki Narita
 
-#pragma once
+#ifndef MYCRYPTO_CIPHERPLATFORM_H
+#define MYCRYPTO_CIPHERPLATFORM_H
 
 #include "Cipher.h"
 #include "CipherMode.h"
 #include "ByteString.h"
-#include "BCryptAlgHandle.h"
-#include "BCryptKeyHandle.h"
-#include "BCryptAuthenticatedCipherModeInfo.h"
-#include <Windows.h>
+#include <openssl/evp.h>
 #include <stddef.h>
 
 namespace hnrt
@@ -24,7 +22,7 @@ namespace hnrt
 		virtual void SetKeyAndIv(void* key, void* iv) = 0;
 		virtual void SetKey(void* key) = 0;
 		virtual void SetPayloadLength(size_t len) = 0;
-		virtual void SetAdditionalAuthenticatedData(void* ptr, size_t len);
+		virtual void SetAdditionalAuthenticatedData(void* ptr, size_t len) = 0;
 		virtual ByteString Update(void* inputBuffer, size_t inputLength) = 0;
 		virtual ByteString Finalize(void* inputBuffer, size_t inputLength) = 0;
 		virtual ByteString GetTag();
@@ -32,12 +30,10 @@ namespace hnrt
 
 	protected:
 
-		LPCWSTR GetAlgorithm();
-		LPCWSTR GetChainingMode();
+		const EVP_CIPHER* GetAlgorithm();
 
-		BCryptAlgHandle _hA;
-		BCryptKeyHandle _hK;
-		BCryptAuthenticatedCipherModeInfo _info;
-		ByteString _iv;
+		EVP_CIPHER_CTX* _ctx;
 	};
 }
+
+#endif //!MYCRYPTO_CIPHERPLATFORM_H

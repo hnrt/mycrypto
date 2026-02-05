@@ -20,6 +20,7 @@ namespace hnrt
 		virtual ~Encrypter();
 		virtual void SetKeyAndIv(void* key, void* iv);
 		virtual void SetKey(void* key);
+		virtual void SetPayloadLength(size_t len);
 		virtual ByteString Update(void* inputBuffer, size_t inputLength);
 		virtual ByteString Finalize(void* inputBuffer, size_t inputLength);
 	};

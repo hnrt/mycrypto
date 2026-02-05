@@ -14,11 +14,11 @@
 #define AES_192_KEY_LENGTH 24
 #define AES_256_KEY_LENGTH 32
 
-#define GCM_IV_LENGTH 12
-#define GCM_TAG_LENGTH 16
-
 #define CCM_IV_LENGTH 12
 #define CCM_TAG_LENGTH 16
+
+#define GCM_IV_LENGTH 12
+#define GCM_TAG_LENGTH 16
 
 namespace hnrt
 {
@@ -35,6 +35,7 @@ namespace hnrt
 		virtual int GetTagLength() const;
 		virtual void SetKeyAndIv(void* key, void* iv) = 0;
 		virtual void SetKey(void* key) = 0;
+		virtual void SetPayloadLength(size_t len) = 0;
 		virtual void SetAdditionalAuthenticatedData(void* ptr, size_t len) = 0;
 		virtual ByteString Update(void* inputBuffer, size_t inputLength) = 0;
 		virtual ByteString Finalize(void* inputBuffer, size_t inputLength) = 0;

@@ -43,17 +43,23 @@ void Decrypter::SetKeyAndIv(void* key, void* iv)
 	case CipherMode::AES_128_CBC:
 	case CipherMode::AES_192_CBC:
 	case CipherMode::AES_256_CBC:
-	case CipherMode::AES_128_CFB:
-	case CipherMode::AES_192_CFB:
-	case CipherMode::AES_256_CFB:
+	case CipherMode::AES_128_CFB1:
+	case CipherMode::AES_192_CFB1:
+	case CipherMode::AES_256_CFB1:
+	case CipherMode::AES_128_CFB8:
+	case CipherMode::AES_192_CFB8:
+	case CipherMode::AES_256_CFB8:
+	case CipherMode::AES_128_CFB128:
+	case CipherMode::AES_192_CFB128:
+	case CipherMode::AES_256_CFB128:
 		memcpy(_iv, iv, _iv.Length());
 		break;
-	case CipherMode::AES_128_GCM:
-	case CipherMode::AES_192_GCM:
-	case CipherMode::AES_256_GCM:
 	case CipherMode::AES_128_CCM:
 	case CipherMode::AES_192_CCM:
 	case CipherMode::AES_256_CCM:
+	case CipherMode::AES_128_GCM:
+	case CipherMode::AES_192_GCM:
+	case CipherMode::AES_256_GCM:
 	{
 		_info.SetNonce(iv, GetIvLength());
 		memset(_iv, 0, _iv.Length());
@@ -71,6 +77,22 @@ void Decrypter::SetKey(void* key)
 	_hA.Open(GetAlgorithm());
 	_hA.SetChainingMode(GetChainingMode());
 	_hK.Generate(_hA, key, GetKeyLength());
+}
+
+
+void Decrypter::SetPayloadLength(size_t len)
+{
+	switch (_cm)
+	{
+	case CipherMode::AES_128_CCM:
+	case CipherMode::AES_192_CCM:
+	case CipherMode::AES_256_CCM:
+	{
+		break;
+	}
+	default:
+		break;
+	}
 }
 
 

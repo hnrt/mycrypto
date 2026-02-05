@@ -3,7 +3,7 @@
 #ifndef MYCRYPTO_ENCRYPTER_H
 #define MYCRYPTO_ENCRYPTER_H
 
-#include "Cipher.h"
+#include "CipherPlatform.h"
 #include "CipherMode.h"
 #include "ByteString.h"
 #include <openssl/evp.h>
@@ -12,7 +12,7 @@
 namespace hnrt
 {
 	class Encrypter
-		: public Cipher
+		: public CipherPlatform
 	{
 	public:
 
@@ -20,15 +20,11 @@ namespace hnrt
 		Encrypter(const Encrypter& src) = delete;
 		virtual ~Encrypter();
 		virtual void SetKeyAndIv(void* key, void* iv);
+		virtual void SetKey(void* key);
+		virtual void SetPayloadLength(size_t len);
 		virtual void SetAdditionalAuthenticatedData(void* ptr, size_t len);
 		virtual ByteString Update(void* inputBuffer, size_t inputLength);
 		virtual ByteString Finalize(void* outputBuffer, size_t outputLength);
-		virtual ByteString GetTag();
-		virtual void SetTag(void* ptr, size_t len);
-
-	private:
-
-		EVP_CIPHER_CTX* _ctx;
 	};
 }
 
