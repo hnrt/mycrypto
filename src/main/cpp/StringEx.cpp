@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdexcept>
 #include <stdarg.h>
+#include <ctype.h>
 
 
 using namespace hnrt;
@@ -239,4 +240,38 @@ String String::Hex(const void* ptr, size_t len)
 		*dst++ = hex[(b >> 0) & 0xF];
 	}
 	return s;
+}
+
+
+String String::Lowercase(const char* src)
+{
+	String dst(src);
+#if defined(LINUX)
+	const char* p = src;
+	char* q = dst;
+	while (*p)
+	{
+		*q++ = tolower(*p++);
+	}
+#elif defined(WIN32)
+	_strlwr_s(dst, dst.Length() + 1);
+#endif
+	return dst;
+}
+
+
+String String::Uppercase(const char* src)
+{
+	String dst(src);
+#if defined(LINUX)
+	const char* p = src;
+	char* q = dst;
+	while (*p)
+	{
+		*q++ = toupper(*p++);
+	}
+#elif defined(WIN32)
+	_strupr_s(dst, dst.Length() + 1);
+#endif
+	return dst;
 }

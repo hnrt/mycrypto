@@ -39,6 +39,7 @@ namespace hnrt
 		static bool Exists(const char* path);
 		static size_t Size(const char* path);
 		static bool Delete(const char* path);
+		static void Rename(const char* oldPath, const char* newPath);
 
 	private:
 

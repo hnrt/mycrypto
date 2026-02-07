@@ -14,8 +14,8 @@
 #define AES_192_KEY_LENGTH 24
 #define AES_256_KEY_LENGTH 32
 
-#define CCM_IV_LENGTH 12
-#define CCM_TAG_LENGTH 16
+#define CCM_IV_LENGTH 7
+#define CCM_TAG_LENGTH 12
 
 #define GCM_IV_LENGTH 12
 #define GCM_TAG_LENGTH 16
@@ -32,15 +32,18 @@ namespace hnrt
 		virtual void Release();
 		virtual int GetKeyLength() const;
 		virtual int GetIvLength() const;
+		virtual int GetNonceLength() const;
+		virtual void SetNonceLength(int len);
 		virtual int GetTagLength() const;
-		virtual void SetKeyAndIv(void* key, void* iv) = 0;
+		virtual void SetTagLength(int len);
 		virtual void SetKey(void* key) = 0;
-		virtual void SetPayloadLength(size_t len) = 0;
-		virtual void SetAdditionalAuthenticatedData(void* ptr, size_t len) = 0;
+		virtual void SetKey(void* key, void* iv) = 0;
+		virtual void SetKey(void* key, void* iv, void* aad, size_t len) = 0;
+		virtual void SetKey(void* key, void* iv, void* tag) = 0;
+		virtual void SetKey(void* key, void* iv, void* tag, void* aad, size_t len) = 0;
 		virtual ByteString Update(void* inputBuffer, size_t inputLength) = 0;
 		virtual ByteString Finalize(void* inputBuffer, size_t inputLength) = 0;
-		virtual ByteString GetTag() = 0;
-		virtual void SetTag(void* ptr, size_t len) = 0;
+		virtual ByteString GetTag() const = 0;
 
 		static Cipher* CreateInstance(CipherMode cm, OperationMode om);
 
@@ -50,6 +53,8 @@ namespace hnrt
 
 		int _r;
 		CipherMode _cm;
+		int _nonceLength;
+		int _tagLength;
 	};
 }
 

@@ -32,6 +32,8 @@ namespace hnrt
 
 		static String Format(const char* format, ...);
 		static String Hex(const void* ptr, size_t len);
+		static String Lowercase(const char* src);
+		static String Uppercase(const char* src);
 
 	private:
 

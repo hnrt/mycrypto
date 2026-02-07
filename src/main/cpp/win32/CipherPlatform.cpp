@@ -43,12 +43,19 @@ LPCWSTR CipherPlatform::GetAlgorithm()
 	case CipherMode::AES_128_CBC:
 	case CipherMode::AES_192_CBC:
 	case CipherMode::AES_256_CBC:
-	case CipherMode::AES_128_CFB1:
-	case CipherMode::AES_192_CFB1:
-	case CipherMode::AES_256_CFB1:
 	case CipherMode::AES_128_CFB8:
 	case CipherMode::AES_192_CFB8:
 	case CipherMode::AES_256_CFB8:
+	case CipherMode::AES_128_CCM:
+	case CipherMode::AES_192_CCM:
+	case CipherMode::AES_256_CCM:
+	case CipherMode::AES_128_GCM:
+	case CipherMode::AES_192_GCM:
+	case CipherMode::AES_256_GCM:
+		return BCRYPT_AES_ALGORITHM;
+	case CipherMode::AES_128_CFB1:
+	case CipherMode::AES_192_CFB1:
+	case CipherMode::AES_256_CFB1:
 	case CipherMode::AES_128_CFB128:
 	case CipherMode::AES_192_CFB128:
 	case CipherMode::AES_256_CFB128:
@@ -58,13 +65,7 @@ LPCWSTR CipherPlatform::GetAlgorithm()
 	case CipherMode::AES_128_CTR:
 	case CipherMode::AES_192_CTR:
 	case CipherMode::AES_256_CTR:
-	case CipherMode::AES_128_CCM:
-	case CipherMode::AES_192_CCM:
-	case CipherMode::AES_256_CCM:
-	case CipherMode::AES_128_GCM:
-	case CipherMode::AES_192_GCM:
-	case CipherMode::AES_256_GCM:
-		return BCRYPT_AES_ALGORITHM;
+		throw std::runtime_error("Unsupported cipher mode.");
 	default:
 		throw std::runtime_error("Bad cipher mode.");
 	}
@@ -83,15 +84,9 @@ LPCWSTR CipherPlatform::GetChainingMode()
 	case CipherMode::AES_192_CBC:
 	case CipherMode::AES_256_CBC:
 		return BCRYPT_CHAIN_MODE_CBC;
-	case CipherMode::AES_128_CFB1:
-	case CipherMode::AES_192_CFB1:
-	case CipherMode::AES_256_CFB1:
 	case CipherMode::AES_128_CFB8:
 	case CipherMode::AES_192_CFB8:
 	case CipherMode::AES_256_CFB8:
-	case CipherMode::AES_128_CFB128:
-	case CipherMode::AES_192_CFB128:
-	case CipherMode::AES_256_CFB128:
 		return BCRYPT_CHAIN_MODE_CFB;
 	case CipherMode::AES_128_CCM:
 	case CipherMode::AES_192_CCM:
@@ -101,25 +96,44 @@ LPCWSTR CipherPlatform::GetChainingMode()
 	case CipherMode::AES_192_GCM:
 	case CipherMode::AES_256_GCM:
 		return BCRYPT_CHAIN_MODE_GCM;
+	case CipherMode::AES_128_CFB1:
+	case CipherMode::AES_192_CFB1:
+	case CipherMode::AES_256_CFB1:
+	case CipherMode::AES_128_CFB128:
+	case CipherMode::AES_192_CFB128:
+	case CipherMode::AES_256_CFB128:
+	case CipherMode::AES_128_OFB:
+	case CipherMode::AES_192_OFB:
+	case CipherMode::AES_256_OFB:
+	case CipherMode::AES_128_CTR:
+	case CipherMode::AES_192_CTR:
+	case CipherMode::AES_256_CTR:
+		throw std::runtime_error("Unsupported cipher mode.");
 	default:
 		throw std::runtime_error("Bad cipher mode.");
 	}
 }
 
 
-void CipherPlatform::SetAdditionalAuthenticatedData(void* ptr, size_t len)
+void CipherPlatform::SetMacContextSize()
 {
-	_info.SetAuthData(ptr, len);
+	Array<DWORD> tagLengths = _hA.AuthTagLengths;
+	DWORD cbMacContextSize = AES_BLOCK_LENGTH;
+	String tmp;
+	for (int i = 0; i < tagLengths.Length(); i++)
+	{
+		if (cbMacContextSize < tagLengths[i])
+		{
+			cbMacContextSize = tagLengths[i];
+		}
+		tmp += String::Format(",%lu", tagLengths[i]);
+	}
+	DEBUG("#tagLengths=%s cbMacContextSize=%lu\n", tmp.Ptr() + 1, cbMacContextSize);
+	_info.SetMacContextSize(cbMacContextSize);
 }
 
 
-ByteString CipherPlatform::GetTag()
+ByteString CipherPlatform::GetTag() const
 {
 	return ByteString(_info.pbTag, _info.cbTag);
-}
-
-
-void CipherPlatform::SetTag(void* ptr, size_t len)
-{
-	_info.SetTag(ptr, len);
 }

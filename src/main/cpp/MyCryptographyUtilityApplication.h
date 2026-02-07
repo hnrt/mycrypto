@@ -77,6 +77,7 @@ namespace hnrt
 		DigestMode _digestMode;
 		String _inputPath;
 		String _outputPath;
+		String _temporaryPath;
 		String _passphrase;
 		String _aad;
 		ByteString _key;

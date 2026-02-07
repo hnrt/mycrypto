@@ -28,6 +28,7 @@ MyCryptographyUtilityApplication::MyCryptographyUtilityApplication()
 	, _digestMode(DigestMode::DIGEST_UNSPECIFIED)
 	, _inputPath()
 	, _outputPath()
+	, _temporaryPath()
 	, _passphrase()
 	, _aad()
 	, _key()
@@ -388,7 +389,7 @@ bool MyCryptographyUtilityApplication::SetInputPath(CommandLine& args)
 	const char* option = args.Argument();
 	if (args.Next())
 	{
-		if (_inputPath.Ptr())
+		if (_inputPath)
 		{
 			throw std::runtime_error(String::Format("%s: Already specified.", option).Ptr());
 		}
@@ -408,11 +409,12 @@ bool MyCryptographyUtilityApplication::SetOutputPath(CommandLine& args)
 	const char* option = args.Argument();
 	if (args.Next())
 	{
-		if (_outputPath.Ptr())
+		if (_outputPath)
 		{
 			throw std::runtime_error(String::Format("%s: Already specified.", option).Ptr());
 		}
 		_outputPath = args.Argument();
+		_temporaryPath = String::Format("%s.%zu", _outputPath.Ptr(), static_cast<size_t>(time(NULL)));
 		DEBUG("#SetOutputPath(%s)\n", _outputPath.Ptr());
 	}
 	else
@@ -548,8 +550,11 @@ void MyCryptographyUtilityApplication::Run()
 
 void MyCryptographyUtilityApplication::Rollback()
 {
-	File::Delete(_outputPath);
-	DEBUG("#File::Delete(%s)\n", _outputPath.Ptr());
+	if (File::Exists(_temporaryPath))
+	{
+		DEBUG("#File::Delete(%s)\n", _temporaryPath.Ptr());
+		File::Delete(_temporaryPath);
+	}
 }
 
 
@@ -567,48 +572,65 @@ void MyCryptographyUtilityApplication::Encrypt()
 	{
 		throw std::runtime_error("Passphrase/key not specified.");
 	}
+	if (!File::Exists(_inputPath))
+	{
+		throw std::runtime_error(String::Format("Input file not found: %s", _inputPath.Ptr()).Ptr());
+	}
+	if (File::Exists(_outputPath))
+	{
+		throw std::runtime_error(String::Format("Output file already exists: %s", _outputPath.Ptr()).Ptr());
+	}
 	File inputStream;
 	inputStream.OpenForRead(_inputPath);
+	File outputStream;
+	outputStream.OpenForWrite(_temporaryPath);
 	CipherPtr cipher;
 	cipher.Initialize(_cipherMode, OperationMode::ENCRYPTION);
 	if (_passphrase)
 	{
 		ComputeKey();
 	}
-	if (cipher->GetIvLength())
+	if (cipher->GetNonceLength())
 	{
 		if (!_iv)
 		{
 			ComputeIv();
 		}
-		cipher->SetKeyAndIv(_key, _iv);
+		if (_aad)
+		{
+			cipher->SetKey(_key, _iv, _aad.Ptr(), _aad.Length());
+			fprintf(stdout, "KEY=%s\n", String::Hex(_key, cipher->GetKeyLength()).Ptr());
+			fprintf(stdout, "IV=%s\n", String::Hex(_iv, cipher->GetIvLength()).Ptr());
+			fprintf(stdout, "AAD=%s\n", String::Hex(_aad.Ptr(), _aad.Length()).Ptr());
+		}
+		else
+		{
+			cipher->SetKey(_key, _iv);
+			fprintf(stdout, "KEY=%s\n", String::Hex(_key, cipher->GetKeyLength()).Ptr());
+			fprintf(stdout, "IV=%s\n", String::Hex(_iv, cipher->GetIvLength()).Ptr());
+		}
+		outputStream.Write(_iv, cipher->GetNonceLength());
+	}
+	else if (cipher->GetIvLength())
+	{
+		if (!_iv)
+		{
+			ComputeIv();
+		}
+		cipher->SetKey(_key, _iv);
 		fprintf(stdout, "KEY=%s\n", String::Hex(_key, cipher->GetKeyLength()).Ptr());
 		fprintf(stdout, "IV=%s\n", String::Hex(_iv, cipher->GetIvLength()).Ptr());
+		outputStream.Write(_iv, cipher->GetIvLength());
 	}
 	else
 	{
 		cipher->SetKey(_key);
 		fprintf(stdout, "KEY=%s\n", String::Hex(_key, cipher->GetKeyLength()).Ptr());
 	}
-	File outputStream;
-	outputStream.OpenForWrite(_outputPath);
-	if (cipher->GetIvLength())
-	{
-		outputStream.Write(_iv, cipher->GetIvLength());
-	}
 	size_t inputLength = inputStream.Size(_inputPath);
 	if (!inputLength)
 	{
 		throw std::runtime_error("Input file is empty. No content to be encrypted.");
-	}
-	if (cipher->GetTagLength())
-	{
-		cipher->SetPayloadLength(inputLength);
-		if (_aad)
-		{
-			cipher->SetAdditionalAuthenticatedData(_aad, _aad.Length());
-			fprintf(stdout, "AAD=%s\n", String::Hex(_aad.Ptr(), _aad.Length()).Ptr());
-		}
 	}
 	size_t remaining = inputLength;
 	unsigned char plaintext[BUFFER_SIZE];
@@ -646,6 +668,7 @@ void MyCryptographyUtilityApplication::Encrypt()
 	outputStream.Close();
 	inputStream.Close();
 	fprintf(stdout, "Encrypted: %zu bytes in %zu bytes out\n", inputStream.Count(), outputStream.Count());
+	File::Rename(_temporaryPath, _outputPath);
 }
 
 
@@ -663,8 +686,18 @@ void MyCryptographyUtilityApplication::Decrypt()
 	{
 		throw std::runtime_error("Passphrase/key not specified.");
 	}
+	if (!File::Exists(_inputPath))
+	{
+		throw std::runtime_error(String::Format("Input file not found: %s", _inputPath.Ptr()).Ptr());
+	}
+	if (File::Exists(_outputPath))
+	{
+		throw std::runtime_error(String::Format("Output file already exists: %s", _outputPath.Ptr()).Ptr());
+	}
 	File inputStream;
 	inputStream.OpenForRead(_inputPath);
+	File outputStream;
+	outputStream.OpenForWrite(_temporaryPath);
 	CipherPtr cipher;
 	cipher.Initialize(_cipherMode, OperationMode::DECRYPTION);
 	if (_passphrase)
@@ -672,7 +705,7 @@ void MyCryptographyUtilityApplication::Decrypt()
 		ComputeKey();
 	}
 	size_t inputLength = inputStream.Size(_inputPath);
-	size_t headerLength = cipher->GetIvLength();
+	size_t headerLength = cipher->GetNonceLength() ? cipher->GetNonceLength() : cipher->GetIvLength();
 	size_t footerLength = cipher->GetTagLength();
 	size_t envelopeLength = headerLength + footerLength;
 	if (inputLength < envelopeLength)
@@ -702,9 +735,27 @@ void MyCryptographyUtilityApplication::Decrypt()
 			throw std::runtime_error("Failed to load IV.");
 		}
 	}
-	if (cipher->GetIvLength())
+	if (cipher->GetNonceLength())
 	{
-		cipher->SetKeyAndIv(_key, _iv);
+		if (_aad)
+		{
+			cipher->SetKey(_key, _iv, tag, _aad, _aad.Length());
+			fprintf(stdout, "KEY=%s\n", String::Hex(_key, cipher->GetKeyLength()).Ptr());
+			fprintf(stdout, "IV=%s\n", String::Hex(_iv, cipher->GetIvLength()).Ptr());
+			fprintf(stdout, "TAG=%s\n", String::Hex(tag, tag.Length()).Ptr());
+			fprintf(stdout, "AAD=%s\n", String::Hex(_aad, _aad.Length()).Ptr());
+		}
+		else
+		{
+			cipher->SetKey(_key, _iv, tag);
+			fprintf(stdout, "KEY=%s\n", String::Hex(_key, cipher->GetKeyLength()).Ptr());
+			fprintf(stdout, "IV=%s\n", String::Hex(_iv, cipher->GetIvLength()).Ptr());
+			fprintf(stdout, "TAG=%s\n", String::Hex(tag, tag.Length()).Ptr());
+		}
+	}
+	else if (cipher->GetIvLength())
+	{
+		cipher->SetKey(_key, _iv);
 		fprintf(stdout, "KEY=%s\n", String::Hex(_key, cipher->GetKeyLength()).Ptr());
 		fprintf(stdout, "IV=%s\n", String::Hex(_iv, cipher->GetIvLength()).Ptr());
 	}
@@ -713,19 +764,6 @@ void MyCryptographyUtilityApplication::Decrypt()
 		cipher->SetKey(_key);
 		fprintf(stdout, "KEY=%s\n", String::Hex(_key, cipher->GetKeyLength()).Ptr());
 	}
-	if (tag.Length())
-	{
-		cipher->SetTag(tag, tag.Length());
-		fprintf(stdout, "TAG=%s\n", String::Hex(tag, tag.Length()).Ptr());
-		cipher->SetPayloadLength(payloadLength);
-		if (_aad)
-		{
-			cipher->SetAdditionalAuthenticatedData(_aad, _aad.Length());
-			fprintf(stdout, "AAD=%s\n", String::Hex(_aad.Ptr(), _aad.Length()).Ptr());
-		}
-	}
-	File outputStream;
-	outputStream.OpenForWrite(_outputPath);
 	size_t remaining = payloadLength;
 	unsigned char ciphertext[BUFFER_SIZE];
 	while (BUFFER_SIZE < remaining)
@@ -756,6 +794,7 @@ void MyCryptographyUtilityApplication::Decrypt()
 	outputStream.Close();
 	inputStream.Close();
 	fprintf(stdout, "Decrypted: %zu bytes in %zu bytes out\n", inputStream.Count(), outputStream.Count());
+	File::Rename(_temporaryPath, _outputPath);
 }
 
 
@@ -780,7 +819,8 @@ void MyCryptographyUtilityApplication::ComputeDigest()
 	}
 	DEBUG("#Read %d bytes\n", static_cast<int>(inputStream.Count()));
 	ByteString result = digest->Finalize();
-	fprintf(stdout, "%s\n", String::Hex(result, result.Length()).Ptr());
+	String hex = String::Lowercase(String::Hex(result, result.Length()));
+	fprintf(stdout, "%s\n", hex.Ptr());
 }
 
 

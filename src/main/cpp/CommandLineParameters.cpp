@@ -63,7 +63,7 @@ bool CommandLineParameters::Process(int argc, char* argv[], MyCryptographyUtilit
 		std::map<String, Parameter>::iterator iter = _mappings.find(key);
 		if (iter == _mappings.end())
 		{
-			throw std::runtime_error(String::Format("Bad command line syntax: %s", key).Ptr());
+			throw std::runtime_error(String::Format("Bad command line syntax: %s", key.Ptr()).Ptr());
 		}
 		if (!iter->second.Invoke(app, args))
 		{

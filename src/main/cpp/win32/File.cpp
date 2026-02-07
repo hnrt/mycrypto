@@ -215,3 +215,14 @@ bool File::Delete(const char* path)
 {
 	return _unlink(path) == 0;
 }
+
+
+void File::Rename(const char* oldPath, const char* newPath)
+{
+	if (rename(oldPath, newPath))
+	{
+		char msg[256];
+		errno_t rc = strerror_s(msg, sizeof(msg), errno);
+		throw std::runtime_error(String::Format("Failed to rename file: %s", rc ? "?" : msg));
+	}
+}

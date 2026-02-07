@@ -8,6 +8,7 @@
 #include "StringEx.h"
 #include "Debug.h"
 #include <openssl/evp.h>
+#include <openssl/err.h>
 #include <stddef.h>
 #include <stdexcept>
 
@@ -101,23 +102,21 @@ const EVP_CIPHER* CipherPlatform::GetAlgorithm()
 }
 
 
-ByteString CipherPlatform::GetTag()
+ByteString CipherPlatform::GetTag() const
 {
 	ByteString tag(GetTagLength());
 	if (EVP_CIPHER_CTX_ctrl(_ctx, EVP_CTRL_AEAD_GET_TAG, tag.Length(), tag) != 1)
 	{
 		throw std::runtime_error("Failed to get the AEAD tag.");
 	}
-	DEBUG("#CipherPlatform::GetTag: [%lu]=%s\n", tag.Length(), String::Hex(tag, tag.Length()).Ptr());
+	DEBUG("#CipherPlatform::GetTag: [%lu]{%s}\n", tag.Length(), String::Hex(tag, tag.Length()).Ptr());
 	return tag;
 }
 
 
-void CipherPlatform::SetTag(void* ptr, size_t len)
+String CipherPlatform::ErrorMessage()
 {
-	DEBUG("#CipherPlatform::SetTag([%lu]=%s)\n", len, String::Hex(ptr, len).Ptr());
-	if (EVP_CIPHER_CTX_ctrl(_ctx, EVP_CTRL_AEAD_SET_TAG, len, reinterpret_cast<unsigned char*>(ptr)) != 1)
-	{
-		throw std::runtime_error("Failed to set the AEAD tag.");
-	}
+	unsigned long errCode = ERR_get_error();
+	char* errStr = ERR_error_string(errCode, NULL);
+	return String::Format("%s", errStr ? errStr : String::Format("[ERROR %lx]", errCode).Ptr());
 }

@@ -6,7 +6,6 @@
 #include "CipherPlatform.h"
 #include "CipherMode.h"
 #include "ByteString.h"
-#include <openssl/evp.h>
 #include <stddef.h>
 
 namespace hnrt
@@ -19,12 +18,17 @@ namespace hnrt
 		Decrypter(CipherMode cm);
 		Decrypter(const Decrypter& src) = delete;
 		virtual ~Decrypter();
-		virtual void SetKeyAndIv(void* key, void* iv);
 		virtual void SetKey(void* key);
-		virtual void SetPayloadLength(size_t len);
-		virtual void SetAdditionalAuthenticatedData(void* ptr, size_t len);
+		virtual void SetKey(void* key, void* iv);
+		virtual void SetKey(void* key, void* iv, void* aad, size_t len);
+		virtual void SetKey(void* key, void* iv, void* tag);
+		virtual void SetKey(void* key, void* iv, void* tag, void* aad, size_t len);
 		virtual ByteString Update(void* inputBuffer, size_t inputLength);
 		virtual ByteString Finalize(void* outputBuffer, size_t outputLength);
+
+	private:
+
+		ByteString _aad;
 	};
 }
 

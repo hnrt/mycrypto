@@ -13,9 +13,47 @@
 using namespace hnrt;
 
 
+static int DefaultNonceLength(CipherMode cm)
+{
+	switch (cm)
+	{
+	case CipherMode::AES_128_CCM:
+	case CipherMode::AES_192_CCM:
+	case CipherMode::AES_256_CCM:
+		return CCM_IV_LENGTH;
+	case CipherMode::AES_128_GCM:
+	case CipherMode::AES_192_GCM:
+	case CipherMode::AES_256_GCM:
+		return GCM_IV_LENGTH;
+	default:
+		return 0;
+	}
+}
+
+
+static int DefaultTagLength(CipherMode cm)
+{
+	switch (cm)
+	{
+	case CipherMode::AES_128_CCM:
+	case CipherMode::AES_192_CCM:
+	case CipherMode::AES_256_CCM:
+		return CCM_TAG_LENGTH;
+	case CipherMode::AES_128_GCM:
+	case CipherMode::AES_192_GCM:
+	case CipherMode::AES_256_GCM:
+		return GCM_TAG_LENGTH;
+	default:
+		return 0;
+	}
+}
+
+
 Cipher::Cipher(CipherMode cm)
 	: _r(1)
 	, _cm(cm)
+	, _nonceLength(DefaultNonceLength(cm))
+	, _tagLength(DefaultTagLength(cm))
 {
 	DEBUG("#Cipher::ctor\n");
 }
@@ -124,20 +162,40 @@ int Cipher::GetIvLength() const
 }
 
 
+int Cipher::GetNonceLength() const
+{
+	return _nonceLength;
+}
+
+
+void Cipher::SetNonceLength(int len)
+{
+	if (_nonceLength)
+	{
+		_nonceLength = len;
+	}
+	else
+	{
+		throw std::runtime_error("Nonce is not available.");
+	}
+}
+
+
 int Cipher::GetTagLength() const
 {
-	switch (_cm)
+	return _tagLength;
+}
+
+
+void Cipher::SetTagLength(int len)
+{
+	if (_tagLength)
 	{
-	case CipherMode::AES_128_CCM:
-	case CipherMode::AES_192_CCM:
-	case CipherMode::AES_256_CCM:
-		return CCM_TAG_LENGTH;
-	case CipherMode::AES_128_GCM:
-	case CipherMode::AES_192_GCM:
-	case CipherMode::AES_256_GCM:
-		return GCM_TAG_LENGTH;
-	default:
-		return 0;
+		_tagLength = len;
+	}
+	else
+	{
+		throw std::runtime_error("Tag is not available.");
 	}
 }
 
