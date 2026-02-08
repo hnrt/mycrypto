@@ -2,16 +2,13 @@
 
 
 #include "Encrypter.h"
-#include "Cipher.h"
 #include "CipherMode.h"
 #include "CipherPlatform.h"
 #include "ByteString.h"
-#include "Array.h"
 #include "BCryptAlgHandle.h"
 #include "BCryptKeyHandle.h"
 #include "BCryptAuthenticatedCipherModeInfo.h"
 #include "Debug.h"
-#include <Windows.h>
 #include <stddef.h>
 #include <stdexcept>
 
@@ -34,109 +31,38 @@ Encrypter::~Encrypter()
 
 void Encrypter::SetKey(void* key)
 {
-	DEBUG("#Encrypter::SetKey\n");
-	_hA.Open(GetAlgorithm());
-	_hA.SetChainingMode(GetChainingMode());
-	_hK.Generate(_hA, key, GetKeyLength());
+	throw std::runtime_error("Encrypter::SetKey(k): Invalid operation for the current context.");
 }
 
 
 void Encrypter::SetKey(void* key, void* iv)
 {
-	DEBUG("#Encrypter::SetKey\n");
-	_hA.Open(GetAlgorithm());
-	_hA.SetChainingMode(GetChainingMode());
-	_hK.Generate(_hA, key, GetKeyLength());
-	switch (_cm)
-	{
-	case CipherMode::AES_128_CBC:
-	case CipherMode::AES_192_CBC:
-	case CipherMode::AES_256_CBC:
-	case CipherMode::AES_128_CFB8:
-	case CipherMode::AES_192_CFB8:
-	case CipherMode::AES_256_CFB8:
-		memcpy(_iv, iv, _iv.Length());
-		break;
-	case CipherMode::AES_128_CCM:
-	case CipherMode::AES_192_CCM:
-	case CipherMode::AES_256_CCM:
-	case CipherMode::AES_128_GCM:
-	case CipherMode::AES_192_GCM:
-	case CipherMode::AES_256_GCM:
-		_info
-			.SetNonce(iv, GetIvLength())
-			.SetTagSize(GetTagLength());
-		memset(_iv, 0, _iv.Length());
-		break;
-	default:
-		break;
-	}
+	throw std::runtime_error("Encrypter::SetKey(k,i): Invalid operation for the current context.");
 }
 
 
 void Encrypter::SetKey(void* key, void* iv, void* aad, size_t len)
 {
-	DEBUG("#Encrypter::SetKey\n");
-	_hA.Open(GetAlgorithm());
-	_hA.SetChainingMode(GetChainingMode());
-	_hK.Generate(_hA, key, GetKeyLength());
-	_info
-		.SetNonce(iv, GetNonceLength())
-		.SetTagSize(GetTagLength())
-		.SetAuthData(aad, len);
-	memset(_iv, 0, _iv.Length());
+	throw std::runtime_error("Encrypter::SetKey(k,i,a): Invalid operation for the current context.");
 }
 
 
 void Encrypter::SetKey(void* key, void* iv, void* tag)
 {
-	throw std::runtime_error("Unable to set TAG for the encryption operation.");
+	throw std::runtime_error("Encrypter::SetKey(k,i,t): Invalid operation for the current context.");
 }
 
 
 void Encrypter::SetKey(void* key, void* iv, void* tag, void* aad, size_t len)
 {
-	throw std::runtime_error("Unable to set TAG for the encryption operation.");
+	throw std::runtime_error("Encrypter::SetKey(k,i,t,a): Invalid operation for the current context.");
 }
 
 
 ByteString Encrypter::Update(void* inputBuffer, size_t inputLength)
 {
 	DEBUG("#Encrypter::Update(%zu): Started.\n", inputLength);
-	ByteString outputBuffer;
-	switch (_cm)
-	{
-	case CipherMode::AES_128_ECB:
-	case CipherMode::AES_192_ECB:
-	case CipherMode::AES_256_ECB:
-		outputBuffer = _hK.Encrypt(inputBuffer, inputLength);
-		break;
-	case CipherMode::AES_128_CBC:
-	case CipherMode::AES_192_CBC:
-	case CipherMode::AES_256_CBC:
-		outputBuffer = _hK.Encrypt(inputBuffer, inputLength, _iv, _iv.Length());
-		break;
-	case CipherMode::AES_128_CFB8:
-	case CipherMode::AES_192_CFB8:
-	case CipherMode::AES_256_CFB8:
-		outputBuffer = _hK.Encrypt(inputBuffer, inputLength, _iv, _iv.Length());
-		break;
-	case CipherMode::AES_128_CCM:
-	case CipherMode::AES_192_CCM:
-	case CipherMode::AES_256_CCM:
-	case CipherMode::AES_128_GCM:
-	case CipherMode::AES_192_GCM:
-	case CipherMode::AES_256_GCM:
-		if (!_info.cbMacContext)
-		{
-			SetMacContextSize();
-		}
-		_info.SetFlags(BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG);
-		outputBuffer = _hK.Encrypt(inputBuffer, inputLength, _info, _iv, _iv.Length());
-		break;
-	default:
-		throw std::runtime_error("Bad cipher mode.");
-	}
+	ByteString outputBuffer = _hK.Encrypt(inputBuffer, inputLength, _iv, _iv.Length());
 	DEBUG("#Encrypter::Update(%zu): Finished. return=%zu\n", inputLength, outputBuffer.Length());
 	return outputBuffer;
 }
@@ -145,42 +71,31 @@ ByteString Encrypter::Update(void* inputBuffer, size_t inputLength)
 ByteString Encrypter::Finalize(void* inputBuffer, size_t inputLength)
 {
 	DEBUG("#Encrypter::Finalize(%zu): Started.\n", inputLength);
-	ByteString outputBuffer;
-	switch (_cm)
-	{
-	case CipherMode::AES_128_ECB:
-	case CipherMode::AES_192_ECB:
-	case CipherMode::AES_256_ECB:
-	{
-		ByteString padded = ByteString(inputBuffer, inputLength).Pkcs7Padding(AES_BLOCK_LENGTH);
-		outputBuffer = _hK.Encrypt(padded, padded.Length());
-		break;
-	}
-	case CipherMode::AES_128_CBC:
-	case CipherMode::AES_192_CBC:
-	case CipherMode::AES_256_CBC:
-	{
-		ByteString padded = ByteString(inputBuffer, inputLength).Pkcs7Padding(AES_BLOCK_LENGTH);
-		outputBuffer = _hK.Encrypt(padded, padded.Length(), _iv, _iv.Length());
-		break;
-	}
-	case CipherMode::AES_128_CFB8:
-	case CipherMode::AES_192_CFB8:
-	case CipherMode::AES_256_CFB8:
-		outputBuffer = _hK.Encrypt(inputBuffer, inputLength, _iv, _iv.Length());
-		break;
-	case CipherMode::AES_128_CCM:
-	case CipherMode::AES_192_CCM:
-	case CipherMode::AES_256_CCM:
-	case CipherMode::AES_128_GCM:
-	case CipherMode::AES_192_GCM:
-	case CipherMode::AES_256_GCM:
-		_info.ResetFlags(BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG);
-		outputBuffer = _hK.Encrypt(inputBuffer, inputLength, _info, _iv, _iv.Length());
-		break;
-	default:
-		throw std::runtime_error("Bad cipher mode.");
-	}
+	ByteString outputBuffer = _hK.Encrypt(inputBuffer, inputLength, _iv, _iv.Length());
 	DEBUG("#Encrypter::Finalize(%zu): Finished. return=%zu\n", inputLength, outputBuffer.Length());
 	return outputBuffer;
+}
+
+
+ByteString Encrypter::GetTag() const
+{
+	return ByteString(_info.pbTag, _info.cbTag);
+}
+
+
+ByteString Encrypter::UpdateAEAD(void* inputBuffer, size_t inputLength)
+{
+	if (!_info.cbMacContext)
+	{
+		SetMacContextSize();
+	}
+	_info.SetFlags(BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG);
+	return _hK.Encrypt(inputBuffer, inputLength, _info, _iv, _iv.Length());
+}
+
+
+ByteString Encrypter::FinalizeAEAD(void* inputBuffer, size_t inputLength)
+{
+	_info.ResetFlags(BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG);
+	return _hK.Encrypt(inputBuffer, inputLength, _info, _iv, _iv.Length());
 }

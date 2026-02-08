@@ -1,0 +1,25 @@
+// Copyright (C) 2026 Hideaki Narita
+
+#pragma once
+
+#include "Encrypter.h"
+#include "CipherMode.h"
+#include "ByteString.h"
+#include <stddef.h>
+
+namespace hnrt
+{
+	class EncrypterCCM
+		: public Encrypter
+	{
+	public:
+
+		EncrypterCCM(CipherMode cm);
+		EncrypterCCM(const EncrypterCCM&) = delete;
+		virtual ~EncrypterCCM();
+		virtual void SetKey(void* key, void* iv);
+		virtual void SetKey(void* key, void* iv, void* aad, size_t len);
+		virtual ByteString Update(void* inputBuffer, size_t inputLength);
+		virtual ByteString Finalize(void* inputBuffer, size_t inputLength);
+	};
+}

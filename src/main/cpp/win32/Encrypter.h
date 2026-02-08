@@ -2,9 +2,8 @@
 
 #pragma once
 
-#include "Cipher.h"
-#include "CipherMode.h"
 #include "CipherPlatform.h"
+#include "CipherMode.h"
 #include "ByteString.h"
 #include <stddef.h>
 
@@ -15,7 +14,6 @@ namespace hnrt
 	{
 	public:
 
-		Encrypter(CipherMode cm);
 		Encrypter(const Encrypter&) = delete;
 		virtual ~Encrypter();
 		virtual void SetKey(void* key);
@@ -25,5 +23,12 @@ namespace hnrt
 		virtual void SetKey(void* key, void* iv, void* tag, void* aad, size_t len);
 		virtual ByteString Update(void* inputBuffer, size_t inputLength);
 		virtual ByteString Finalize(void* inputBuffer, size_t inputLength);
+		virtual ByteString GetTag() const;
+
+	protected:
+
+		Encrypter(CipherMode cm);
+		ByteString UpdateAEAD(void* inputBuffer, size_t inputLength);
+		ByteString FinalizeAEAD(void* inputBuffer, size_t inputLength);
 	};
 }

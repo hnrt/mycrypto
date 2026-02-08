@@ -1,0 +1,33 @@
+// Copyright (C) 2026 Hideaki Narita
+
+#ifndef MYCRYPTO_ENCRYPTERGCM_H
+#define MYCRYPTO_ENCRYPTERGCM_H
+
+#include "Encrypter.h"
+#include "CipherMode.h"
+#include "ByteString.h"
+#include <stddef.h>
+
+namespace hnrt
+{
+	class EncrypterGCM
+		: public Encrypter
+	{
+	public:
+
+		EncrypterGCM(CipherMode cm);
+		EncrypterGCM(const EncrypterGCM& src) = delete;
+		virtual ~EncrypterGCM();
+		virtual void SetKey(void* key, void* iv);
+		virtual void SetKey(void* key, void* iv, void* aad, size_t len);
+		virtual ByteString Update(void* inputBuffer, size_t inputLength);
+
+	private:
+
+		void SetKeyIv(void* key, void* iv);
+
+		ByteString _aad;
+	};
+}
+
+#endif //!MYCRYPTO_ENCRYPTERGCM_H

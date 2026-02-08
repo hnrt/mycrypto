@@ -7,6 +7,8 @@
 
 namespace hnrt
 {
+	class ByteString;
+
 	class String
 	{
 	public:
@@ -32,6 +34,7 @@ namespace hnrt
 
 		static String Format(const char* format, ...);
 		static String Hex(const void* ptr, size_t len);
+		static String Hex(const ByteString& bs);
 		static String Lowercase(const char* src);
 		static String Uppercase(const char* src);
 

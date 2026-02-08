@@ -5,6 +5,7 @@
 #include "Digest.h"
 #include "DigestMode.h"
 #include "ByteString.h"
+#include "StringEx.h"
 #include "Debug.h"
 #include <openssl/evp.h>
 #include <stddef.h>
@@ -38,7 +39,7 @@ DigestPlatform::DigestPlatform(DigestMode dm)
 	: Digest(dm)
 	, _ctx(EVP_MD_CTX_new())
 {
-	DEBUG("#DigestPlatform::ctor\n");
+	DEBUG("#DigestPlatform@%s::ctor\n", DigestModeText(_dm));
 	if (EVP_DigestInit_ex(_ctx, GetAlgorithm(_dm), NULL) != 1)
 	{
 		throw std::runtime_error("Failed to initialize the digest context.");
@@ -48,7 +49,7 @@ DigestPlatform::DigestPlatform(DigestMode dm)
 
 DigestPlatform::~DigestPlatform()
 {
-	DEBUG("#DigestPlatform::dtor\n");
+	DEBUG("#DigestPlatform@%s::dtor\n", DigestModeText(_dm));
 	if (_ctx)
 	{
 		EVP_MD_CTX_free(_ctx);
@@ -59,14 +60,14 @@ DigestPlatform::~DigestPlatform()
 int DigestPlatform::GetLength() const
 {
 	int length = EVP_MD_size(EVP_MD_CTX_get0_md(_ctx));
-	DEBUG("#DigestPlatform::GetLength: return=%d\n", length);
+	DEBUG("#DigestPlatform@%s::GetLength: %d\n", DigestModeText(_dm), length);
 	return length;
 }
 
 
 void DigestPlatform::Update(const void* ptr, size_t len)
 {
-	DEBUG("#DigestPlatform::Update(%lu)\n", len);
+	DEBUG("#DigestPlatform@%s::Update(%lu)\n", DigestModeText(_dm), len);
 	if (EVP_DigestUpdate(_ctx, ptr, len) != 1)
 	{
 		throw std::runtime_error("Failed to update the digest context.");
@@ -76,16 +77,17 @@ void DigestPlatform::Update(const void* ptr, size_t len)
 
 ByteString DigestPlatform::Finalize()
 {
-	DEBUG("#DigestPlatform::Finalize()\n");
+	DEBUG("#DigestPlatform@%s::Finalize: Started.\n", DigestModeText(_dm));
 	ByteString result(EVP_MD_size(EVP_MD_CTX_get0_md(_ctx)));
 	unsigned int length = 0;
 	if (EVP_DigestFinal_ex(_ctx, result, &length) != 1)
 	{
 		throw std::runtime_error("Failed to finalize the digest context.");
 	}
-	if (static_cast<size_t>(length) != result.Length())
+	else if (static_cast<size_t>(length) != result.Length())
 	{
 		throw std::runtime_error("Failed to finalize the digest context; lengths mismatch.");
 	}
+	DEBUG("#DigestPlatform@%s::Finalize: Finished. [%zu]{%s}\n", DigestModeText(_dm), result.Length(), String::Hex(result).Ptr());
 	return result;
 }

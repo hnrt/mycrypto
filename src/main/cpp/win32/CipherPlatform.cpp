@@ -115,6 +115,47 @@ LPCWSTR CipherPlatform::GetChainingMode()
 }
 
 
+void CipherPlatform::SetKeyOnly(void* key)
+{
+	_hA.Open(GetAlgorithm());
+	_hA.SetChainingMode(GetChainingMode());
+	_hK.Generate(_hA, key, GetKeyLength());
+}
+
+
+void CipherPlatform::SetKeyIv(void* key, void* iv)
+{
+	_hA.Open(GetAlgorithm());
+	_hA.SetChainingMode(GetChainingMode());
+	_hK.Generate(_hA, key, GetKeyLength());
+	memcpy(_iv, iv, _iv.Length());
+}
+
+
+void CipherPlatform::SetKeyIvTagLength(void* key, void* iv)
+{
+	_hA.Open(GetAlgorithm());
+	_hA.SetChainingMode(GetChainingMode());
+	_hK.Generate(_hA, key, GetKeyLength());
+	_info
+		.SetNonce(iv, GetNonceLength())
+		.SetTagSize(GetTagLength());
+	memset(_iv, 0, _iv.Length());
+}
+
+
+void CipherPlatform::SetKeyIvTag(void* key, void* iv, void* tag)
+{
+	_hA.Open(GetAlgorithm());
+	_hA.SetChainingMode(GetChainingMode());
+	_hK.Generate(_hA, key, GetKeyLength());
+	_info
+		.SetNonce(iv, GetNonceLength())
+		.SetTag(tag, GetTagLength());
+	memset(_iv, 0, _iv.Length());
+}
+
+
 void CipherPlatform::SetMacContextSize()
 {
 	Array<DWORD> tagLengths = _hA.AuthTagLengths;
@@ -130,10 +171,4 @@ void CipherPlatform::SetMacContextSize()
 	}
 	DEBUG("#tagLengths=%s cbMacContextSize=%lu\n", tmp.Ptr() + 1, cbMacContextSize);
 	_info.SetMacContextSize(cbMacContextSize);
-}
-
-
-ByteString CipherPlatform::GetTag() const
-{
-	return ByteString(_info.pbTag, _info.cbTag);
 }

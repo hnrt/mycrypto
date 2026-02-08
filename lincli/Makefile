@@ -104,6 +104,7 @@ OBJS1=$(OBJDIR)ByteString.o \
 	$(OBJDIR)CommandLine.o \
 	$(OBJDIR)CommandLineParameters.o \
 	$(OBJDIR)Digest.o \
+	$(OBJDIR)DigestMode.o \
 	$(OBJDIR)DigestPtr.o \
 	$(OBJDIR)Heap.o \
 	$(OBJDIR)Main.o \
@@ -113,7 +114,21 @@ OBJS1=$(OBJDIR)ByteString.o \
 	$(OBJDIR)linux/CipherPlatform.o \
 	$(OBJDIR)linux/DigestPlatform.o \
 	$(OBJDIR)linux/Decrypter.o \
+	$(OBJDIR)linux/DecrypterCBC.o \
+	$(OBJDIR)linux/DecrypterCCM.o \
+	$(OBJDIR)linux/DecrypterCFB1.o \
+	$(OBJDIR)linux/DecrypterCFB8.o \
+	$(OBJDIR)linux/DecrypterCFB128.o \
+	$(OBJDIR)linux/DecrypterECB.o \
+	$(OBJDIR)linux/DecrypterGCM.o \
 	$(OBJDIR)linux/Encrypter.o \
+	$(OBJDIR)linux/EncrypterCBC.o \
+	$(OBJDIR)linux/EncrypterCCM.o \
+	$(OBJDIR)linux/EncrypterCFB1.o \
+	$(OBJDIR)linux/EncrypterCFB8.o \
+	$(OBJDIR)linux/EncrypterCFB128.o \
+	$(OBJDIR)linux/EncrypterECB.o \
+	$(OBJDIR)linux/EncrypterGCM.o \
 	$(OBJDIR)linux/File.o
 	
 LIBS1=

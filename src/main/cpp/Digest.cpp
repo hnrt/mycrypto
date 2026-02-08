@@ -2,6 +2,7 @@
 
 
 #include "Digest.h"
+#include "DigestMode.h"
 #include "DigestPlatform.h"
 #include "Debug.h"
 
@@ -13,13 +14,13 @@ Digest::Digest(DigestMode dm)
 	: _r(1)
 	, _dm(dm)
 {
-	DEBUG("#Digest::ctor\n");
+	DEBUG("#Digest@%s::ctor\n", DigestModeText(_dm));
 }
 
 
 Digest::~Digest()
 {
-	DEBUG("#Digest::dtor\n");
+	DEBUG("#Digest@%s::dtor\n", DigestModeText(_dm));
 }
 
 

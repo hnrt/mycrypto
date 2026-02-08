@@ -3,6 +3,7 @@
 
 #include "StringEx.h"
 #include "Heap.h"
+#include "ByteString.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -240,6 +241,12 @@ String String::Hex(const void* ptr, size_t len)
 		*dst++ = hex[(b >> 0) & 0xF];
 	}
 	return s;
+}
+
+
+String String::Hex(const ByteString& bs)
+{
+	return Hex(bs, bs.Length());
 }
 
 

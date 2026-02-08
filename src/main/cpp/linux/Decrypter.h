@@ -26,9 +26,10 @@ namespace hnrt
 		virtual ByteString Update(void* inputBuffer, size_t inputLength);
 		virtual ByteString Finalize(void* outputBuffer, size_t outputLength);
 
-	private:
+	protected:
 
-		ByteString _aad;
+		void SetKeyIv(void* key, void* iv);
+		void SetKeyIvTag(void* key, void* iv, void* tag);
 	};
 }
 

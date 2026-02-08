@@ -161,6 +161,7 @@
     <ClCompile Include="..\src\main\cpp\CommandLine.cpp" />
     <ClCompile Include="..\src\main\cpp\CommandLineParameters.cpp" />
     <ClCompile Include="..\src\main\cpp\Digest.cpp" />
+    <ClCompile Include="..\src\main\cpp\DigestMode.cpp" />
     <ClCompile Include="..\src\main\cpp\DigestPtr.cpp" />
     <ClCompile Include="..\src\main\cpp\Heap.cpp" />
     <ClCompile Include="..\src\main\cpp\Main.cpp" />
@@ -174,8 +175,18 @@
     <ClCompile Include="..\src\main\cpp\win32\BCryptKeyHandle.cpp" />
     <ClCompile Include="..\src\main\cpp\win32\CipherPlatform.cpp" />
     <ClCompile Include="..\src\main\cpp\win32\Decrypter.cpp" />
+    <ClCompile Include="..\src\main\cpp\win32\DecrypterCBC.cpp" />
+    <ClCompile Include="..\src\main\cpp\win32\DecrypterCCM.cpp" />
+    <ClCompile Include="..\src\main\cpp\win32\DecrypterCFB8.cpp" />
+    <ClCompile Include="..\src\main\cpp\win32\DecrypterECB.cpp" />
+    <ClCompile Include="..\src\main\cpp\win32\DecrypterGCM.cpp" />
     <ClCompile Include="..\src\main\cpp\win32\DigestPlatform.cpp" />
     <ClCompile Include="..\src\main\cpp\win32\Encrypter.cpp" />
+    <ClCompile Include="..\src\main\cpp\win32\EncrypterCBC.cpp" />
+    <ClCompile Include="..\src\main\cpp\win32\EncrypterCCM.cpp" />
+    <ClCompile Include="..\src\main\cpp\win32\EncrypterCFB8.cpp" />
+    <ClCompile Include="..\src\main\cpp\win32\EncrypterECB.cpp" />
+    <ClCompile Include="..\src\main\cpp\win32\EncrypterGCM.cpp" />
     <ClCompile Include="..\src\main\cpp\win32\File.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -203,8 +214,18 @@
     <ClInclude Include="..\src\main\cpp\win32\BCryptKeyHandle.h" />
     <ClInclude Include="..\src\main\cpp\win32\CipherPlatform.h" />
     <ClInclude Include="..\src\main\cpp\win32\Decrypter.h" />
+    <ClInclude Include="..\src\main\cpp\win32\DecrypterCBC.h" />
+    <ClInclude Include="..\src\main\cpp\win32\DecrypterCCM.h" />
+    <ClInclude Include="..\src\main\cpp\win32\DecrypterCFB8.h" />
+    <ClInclude Include="..\src\main\cpp\win32\DecrypterECB.h" />
+    <ClInclude Include="..\src\main\cpp\win32\DecrypterGCM.h" />
     <ClInclude Include="..\src\main\cpp\win32\DigestPlatform.h" />
     <ClInclude Include="..\src\main\cpp\win32\Encrypter.h" />
+    <ClInclude Include="..\src\main\cpp\win32\EncrypterCBC.h" />
+    <ClInclude Include="..\src\main\cpp\win32\EncrypterCCM.h" />
+    <ClInclude Include="..\src\main\cpp\win32\EncrypterCFB8.h" />
+    <ClInclude Include="..\src\main\cpp\win32\EncrypterECB.h" />
+    <ClInclude Include="..\src\main\cpp\win32\EncrypterGCM.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

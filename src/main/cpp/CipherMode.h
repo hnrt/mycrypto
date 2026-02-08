@@ -36,6 +36,11 @@ namespace hnrt
 		AES_192_GCM,
 		AES_256_GCM
 	};
+
+	inline bool IsCCM(CipherMode cm)
+	{
+		return cm == CipherMode::AES_128_CCM || cm == CipherMode::AES_192_CCM || cm == CipherMode::AES_256_CCM;
+	}
 }
 
 #endif //!MYCRYPTO_CIPHERMODE_H

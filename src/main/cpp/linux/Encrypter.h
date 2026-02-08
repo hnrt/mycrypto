@@ -24,11 +24,11 @@ namespace hnrt
 		virtual void SetKey(void* key, void* iv, void* tag);
 		virtual void SetKey(void* key, void* iv, void* tag, void* aad, size_t len);
 		virtual ByteString Update(void* inputBuffer, size_t inputLength);
-		virtual ByteString Finalize(void* outputBuffer, size_t outputLength);
+		virtual ByteString Finalize(void* inputBuffer, size_t inputLength);
 
-	private:
+	protected:
 
-		ByteString _aad;
+		void SetKeyIv(void* key, void* iv);
 	};
 }
 

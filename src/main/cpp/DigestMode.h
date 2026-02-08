@@ -14,6 +14,8 @@ namespace hnrt
 		SHA384,
 		SHA512
 	};
+
+	const char* DigestModeText(DigestMode mode);
 }
 
 #endif //!MYCRYPTO_DIGESTMODE_H
