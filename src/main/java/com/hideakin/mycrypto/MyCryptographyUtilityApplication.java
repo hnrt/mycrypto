@@ -27,7 +27,7 @@ import com.hideakin.util.TextHelpers;
 
 public class MyCryptographyUtilityApplication {
 
-	public static final String VERSION = "0.7.0";
+	public static final String VERSION = "0.8.0";
 
 	public static final String DESCRIPTION = "My Cryptography Utility version %s\n";
 
@@ -61,7 +61,7 @@ public class MyCryptographyUtilityApplication {
 	private int _operation = 0;
 	private int _flags = 0;
 	private PrintStream _info;
-	@SuppressWarnings("serial")
+	
 	private final Map<OperationalMode, Supplier<Cipher>> _cipherSupplier = new HashMap<OperationalMode, Supplier<Cipher>>() {
 		{
 			put(OperationalMode.CBC, () -> { return getCipherWithKeyAndIv(); });
@@ -134,8 +134,11 @@ public class MyCryptographyUtilityApplication {
 		_aad = value;
 	}
 
-	private void setInputPath(int operation, String fileName) {
+	private void setOperation(int operation) {
 		_operation = operation;
+	}
+
+	private void setInputPath(String fileName) {
 		_inFileName = fileName;
 	}
 
@@ -162,11 +165,36 @@ public class MyCryptographyUtilityApplication {
 		try {
 			in = openInput();
 			out = openOutput();
-			Cipher cipher = getCipher();
 			long inBytes = 0L;
 			long outBytes = 0L;
 			byte[] buf = new byte[8192];
 			int n;
+			if (_operation == Cipher.ENCRYPT_MODE) {
+				if (_nonce != null) {
+					out.write(_nonce);
+					outBytes += _nonce.length;
+				} else if (_iv != null) {
+					out.write(_iv);
+					outBytes += _iv.length;
+				}
+			} else if (_operation == Cipher.DECRYPT_MODE) {
+				if (_mode == OperationalMode.GCM) {
+					_nonce = new byte[_nonceLength];
+					n = in.read(_nonce);
+					if (n != _nonceLength) {
+						throw new RuntimeException("Failed to read nonce.");
+					}
+					inBytes += n;
+				} else if (_mode == OperationalMode.CBC || _mode == OperationalMode.CFB8 || _mode == OperationalMode.OFB8) {
+					_iv = new byte[_ivLength];
+					n = in.read(_iv);
+					if (n != _ivLength) {
+						throw new RuntimeException("Failed to read IV.");
+					}
+					inBytes += n;
+				}
+			}
+			Cipher cipher = getCipher();
 			while ((n = in.read(buf)) >= 0) {
 				if (n > 0) {
 					inBytes += n;
@@ -219,10 +247,16 @@ public class MyCryptographyUtilityApplication {
 
 	private void verifyIv() throws Exception {
 		if (_ivLength > 0) {
-			if (hasIv()) {
-				_iv = adjustLength(_iv, _ivLength);
-			} else {
-				_iv = adjustLength(generate32Bytes(null), _ivLength);
+			if (_operation == Cipher.ENCRYPT_MODE) {
+				if (hasIv()) {
+					_iv = adjustLength(_iv, _ivLength);
+				} else {
+					_iv = adjustLength(generate32Bytes(null), _ivLength);
+				}
+			} else if (_operation == Cipher.DECRYPT_MODE) {
+				if (hasIv()) {
+					throw new RuntimeException("Initial vector is not required. It is prepended in the input stream.");
+				}
 			}
 		} else if (hasIv()) {
 			throw new RuntimeException("Initial vector is not required.");
@@ -231,10 +265,16 @@ public class MyCryptographyUtilityApplication {
 
 	private void verifyNonce() throws Exception {
 		if (_nonceLength > 0) {
-			if (hasNonce()) {
-				_nonce = adjustLength(_nonce, _nonceLength);
-			} else {
-				_nonce = adjustLength(generate32Bytes(null), _nonceLength);
+			if (_operation == Cipher.ENCRYPT_MODE) {
+				if (hasNonce()) {
+					_nonce = adjustLength(_nonce, _nonceLength);
+				} else {
+					_nonce = adjustLength(generate32Bytes(null), _nonceLength);
+				}
+			} else if (_operation == Cipher.DECRYPT_MODE) {
+				if (hasNonce()) {
+					throw new RuntimeException("Nonce is not required. It is prepended in the input stream.");
+				}
 			}
 		} else if (hasNonce()) {
 			throw new RuntimeException("Nonce is not required.");
@@ -290,7 +330,7 @@ public class MyCryptographyUtilityApplication {
 			_info = System.err;
 		} else {
 			_outPath = Paths.get(_outFileName);
-			if (!checkFlags(FLAG_OVERWRITE)&& Files.exists(_outPath)) {
+			if (!checkFlags(FLAG_OVERWRITE) && Files.exists(_outPath)) {
 				throw new RuntimeException("Output file already exists.");
 			}
 			_tmpPath = Paths.get(String.format("%s.%d", _outFileName, System.currentTimeMillis()));
@@ -359,7 +399,7 @@ public class MyCryptographyUtilityApplication {
 	private Cipher getCipherWithGcmParameterSpec() {
 		try {
 			if (_tagLength == 0) {
-				_tagLength = AES_GCM_TAG_LENGTH_MIN;
+				_tagLength = AES_GCM_TAG_LENGTH_MAX;
 			}
 			SecretKeySpec keySpec = new SecretKeySpec(_key, _algorithm.label());
 			GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(_tagLength * 8, _nonce);
@@ -422,15 +462,15 @@ public class MyCryptographyUtilityApplication {
 					setTransformation(Algorithm.AES, OperationalMode.ECB, Padding.PKCS5, AES_128_KEY_LENGTH);
 					return true;
 				})
-				.add("aes-256-cfb", transformationDescription(Algorithm.AES, OperationalMode.CFB8, Padding.NONE, 256), (p) -> {
+				.add("aes-256-cfb8", transformationDescription(Algorithm.AES, OperationalMode.CFB8, Padding.NONE, 256), (p) -> {
 					setTransformation(Algorithm.AES, OperationalMode.CFB8, Padding.NONE, AES_256_KEY_LENGTH);
 					return true;
 				})
-				.add("aes-192-cfb", transformationDescription(Algorithm.AES, OperationalMode.CFB8, Padding.NONE, 192), (p) -> {
+				.add("aes-192-cfb8", transformationDescription(Algorithm.AES, OperationalMode.CFB8, Padding.NONE, 192), (p) -> {
 					setTransformation(Algorithm.AES, OperationalMode.CFB8, Padding.NONE, AES_192_KEY_LENGTH);
 					return true;
 				})
-				.add("aes-128-cfb", transformationDescription(Algorithm.AES, OperationalMode.CFB8, Padding.NONE, 128), (p) -> {
+				.add("aes-128-cfb8", transformationDescription(Algorithm.AES, OperationalMode.CFB8, Padding.NONE, 128), (p) -> {
 					setTransformation(Algorithm.AES, OperationalMode.CFB8, Padding.NONE, AES_128_KEY_LENGTH);
 					return true;
 				})
@@ -458,23 +498,23 @@ public class MyCryptographyUtilityApplication {
 					setTransformation(Algorithm.AES, OperationalMode.GCM, Padding.NONE, AES_128_KEY_LENGTH);
 					return true;
 				})
-				.add("-encrypt", "PATH", "specifies input file to encrypt\nreads from standard input if a hyphen is specified", (p) -> {
+				.add("-encrypt", "specifies encryption mode", (p) -> {
+					setOperation(Cipher.ENCRYPT_MODE);
+					return true;
+				})
+				.add("-decrypt", "specifies decryption mode", (p) -> {
+					setOperation(Cipher.DECRYPT_MODE);
+					return true;
+				})
+				.add("-input", "PATH", "specifies input file\nreads from standard input if a hyphen is specified", (p) -> {
 					if (p.next()) {
-						setInputPath(Cipher.ENCRYPT_MODE, p.argument());
+						setInputPath(p.argument());
 						return true;
 					} else {
 						throw new RuntimeException("Input file is not specified.");
 					}
 				})
-				.add("-decrypt", "PATH", "specifies input file to decrypt\nreads from standard input if a hyphen is specified", (p) -> {
-					if (p.next()) {
-						setInputPath(Cipher.DECRYPT_MODE, p.argument());
-						return true;
-					} else {
-						throw new RuntimeException("Input file is not specified.");
-					}
-				})
-				.add("-out", "PATH", "specifies output file\nwrites to standard output if a hyphen is specified", (p) -> {
+				.add("-output", "PATH", "specifies output file\nwrites to standard output if a hyphen is specified", (p) -> {
 					if (p.next()) {
 						setOutputPath(p.argument());
 						return true;
@@ -482,16 +522,7 @@ public class MyCryptographyUtilityApplication {
 						throw new RuntimeException("Output file is not specified.");
 					}
 				})
-				.add("-overwrite", "PATH", "specifies output file\nwrites to file even if it exists", (p) -> {
-					if (p.next()) {
-						setOutputPath(p.argument());
-						setFlags(FLAG_OVERWRITE);
-						return true;
-					} else {
-						throw new RuntimeException("Output file is not specified.");
-					}
-				})
-				.add("-key", "HEXSTRING", "specifies private key", (p) -> {
+				.add("-key", "HEX", "specifies private key", (p) -> {
 					if (p.next()) {
 						if (!hasKey()) {
 							setKey(p.binaryArgument());
@@ -503,7 +534,7 @@ public class MyCryptographyUtilityApplication {
 						throw new RuntimeException("Private key is not specified.");
 					}
 				})
-				.add("-iv", "HEXSTRING", "specifies initial vector", (p) -> {
+				.add("-iv", "HEX", "specifies initial vector", (p) -> {
 					if (p.next()) {
 						if (!hasIv()) {
 							setIv(p.binaryArgument());
@@ -515,7 +546,7 @@ public class MyCryptographyUtilityApplication {
 						throw new RuntimeException("Initial vector is not specified.");
 					}
 				})
-				.add("-nonce", "HEXSTRING", "specifies nonce", (p) -> {
+				.add("-nonce", "HEX", "specifies nonce", (p) -> {
 					if (p.next()) {
 						if (!hasNonce()) {
 							setNonce(p.binaryArgument());
@@ -527,7 +558,7 @@ public class MyCryptographyUtilityApplication {
 						throw new RuntimeException("Nonce is not specified.");
 					}
 				})
-				.add("-keyphrase", "TEXT", "specifies text phrase to generate private key", (p) -> {
+				.add("-passphrase", "TEXT", "specifies passphrase to generate private key", (p) -> {
 					if (p.next()) {
 						if (!hasKey()) {
 							setKey(generate32Bytes(p.argument()));
@@ -537,30 +568,6 @@ public class MyCryptographyUtilityApplication {
 						}
 					} else {
 						throw new RuntimeException("Key phrase is not specified.");
-					}
-				})
-				.add("-ivphrase", "TEXT", "specifies text phrase to generate initial vector", (p) -> {
-					if (p.next()) {
-						if (!hasIv()) {
-							setIv(generate32Bytes(p.argument()));
-							return true;
-						} else {
-							throw new RuntimeException("Initial vector is already specified.");
-						}
-					} else {
-						throw new RuntimeException("IV phrase is not specified.");
-					}
-				})
-				.add("-noncephrase", "TEXT", "specifies text phrase to generate nonce", (p) -> {
-					if (p.next()) {
-						if (!hasNonce()) {
-							setNonce(generate32Bytes(p.argument()));
-							return true;
-						} else {
-							throw new RuntimeException("Nonce is already specified.");
-						}
-					} else {
-						throw new RuntimeException("Nonce phrase is not specified.");
 					}
 				})
 				.add("-tag", "NUMBER", String.format("specifies tag length\nGCM: min=%d max=%d", AES_GCM_TAG_LENGTH_MIN, AES_GCM_TAG_LENGTH_MAX), (p) -> {
@@ -575,19 +582,7 @@ public class MyCryptographyUtilityApplication {
 						throw new RuntimeException("Tag length is not specified.");
 					}
 				})
-				.add("-aadata", "HEXSTRING", "specifies additional authentication data", (p) -> {
-					if (p.next()) {
-						if (!hasAad()) {
-							setAad(p.binaryArgument());
-							return true;
-						} else {
-							throw new RuntimeException("Additional authentication data is already specified.");
-						}
-					} else {
-						throw new RuntimeException("Additional authentication data value is not specified.");
-					}
-				})
-				.add("-aatext", "TEXT", "specifies additional authentication data with text", (p) -> {
+				.add("-aad", "TEXT", "specifies additional authentication data with text", (p) -> {
 					if (p.next()) {
 						if (!hasAad()) {
 							setAad(p.argument().getBytes());
@@ -605,17 +600,9 @@ public class MyCryptographyUtilityApplication {
 				})
 				.addAlias("-e", "-encrypt")
 				.addAlias("-d", "-decrypt")
-				.addAlias("-o", "-out")
-				.addAlias("-O", "-overwrite")
-				.addAlias("-k", "-key")
-				.addAlias("-i", "-iv")
-				.addAlias("-n", "-nonce")
-				.addAlias("-t", "-tag")
-				.addAlias("-a", "-aadata")
-				.addAlias("-K", "-keyphrase")
-				.addAlias("-I", "-ivphrase")
-				.addAlias("-N", "-noncephrase")
-				.addAlias("-A", "-aatext")
+				.addAlias("-i", "-input")
+				.addAlias("-o", "-output")
+				.addAlias("-p", "-passphrase")
 				.addAlias("-h", "-help");
 	}
 
