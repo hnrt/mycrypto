@@ -56,7 +56,15 @@ ByteString DecrypterCCM::Update(void* inputBuffer, size_t inputLength)
 
 	if (_cap < _len + inputLength)
 	{
-		size_t cap = _len + inputLength + 8192;
+		size_t cap = _len + inputLength;
+		cap |= cap >> 1;
+		cap |= cap >> 2;
+		cap |= cap >> 4;
+		cap |= cap >> 8;
+		cap |= cap >> 16;
+		cap |= cap >> 32;
+		cap++;
+		DEBUG("#DecrypterCCM::Update(%zu): cap=%zu\n", inputLength, cap);
 		_buf = reinterpret_cast<unsigned char*>(Reallocate(_buf, cap));
 		_cap = cap;
 	}

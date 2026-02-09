@@ -7,6 +7,7 @@
 #include "ByteString.h"
 #include <stddef.h>
 
+
 namespace hnrt
 {
 	class EncrypterCCM
@@ -21,5 +22,15 @@ namespace hnrt
 		virtual void SetKey(void* key, void* iv, void* aad, size_t len);
 		virtual ByteString Update(void* inputBuffer, size_t inputLength);
 		virtual ByteString Finalize(void* inputBuffer, size_t inputLength);
+
+	private:
+
+#ifdef CCM_BUFFERING
+
+		unsigned char* _buf;
+		size_t _cap;
+		size_t _len;
+
+#endif //CCM_BUFFERING
 	};
 }
