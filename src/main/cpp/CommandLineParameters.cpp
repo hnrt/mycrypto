@@ -76,30 +76,49 @@ bool CommandLineParameters::Process(int argc, char* argv[], MyCryptographyUtilit
 
 String CommandLineParameters::ToString() const
 {
-	String s("Parameters:\n");
-	size_t m = 0;
-	std::vector<Parameter>::const_iterator iter = _parameters.cbegin();
-	while (iter != _parameters.cend())
+	size_t width1 = 0;
+	for (std::vector<Parameter>::const_iterator iter = _parameters.cbegin(); iter != _parameters.cend(); iter++)
 	{
 		const char* key = iter->Key();
 		const char* operand = iter->Operand();
 		size_t n = strlen(key) + (operand ? 1 + strlen(operand) : 0);
-		if (m < n)
+		if (width1 < n)
 		{
-			m = n;
+			width1 = n;
 		}
-		iter++;
 	}
-	iter = _parameters.cbegin();
-	while (iter != _parameters.cend())
+	String s("Parameters:\n");
+	for (std::vector<Parameter>::const_iterator iter = _parameters.cbegin(); iter != _parameters.cend(); iter++)
 	{
 		const char* key = iter->Key();
 		const char* operand = iter->Operand();
 		const char* description = iter->Description();
-		s = String::Format("%s  %-*s  %s\n", s.Ptr(),
-			static_cast<int>(m), String::Format(operand ? "%s %s" : "%s", key, operand).Ptr(),
-			description);
-		iter++;
+		const char* descriptionEnd = strchr(description, '\n');
+		size_t width2 = descriptionEnd ? (descriptionEnd - description) : strlen(description);
+		s += String::Format("  %-*s  %.*s\n",
+			static_cast<int>(width1), String::Format(operand ? "%s %s" : "%s", key, operand).Ptr(),
+			static_cast<int>(width2), description);
+		while (descriptionEnd)
+		{
+			description = descriptionEnd + 1;
+			descriptionEnd = strchr(description, '\n');
+			width2 = descriptionEnd ? (descriptionEnd - description) : strlen(description);
+			s += String::Format("  %-*s  %.*s\n",
+				static_cast<int>(width1), " ",
+				static_cast<int>(width2), description);
+		}
+	}
+	s += "Aliases:\n";
+	for (std::vector<Parameter>::const_iterator iter = _parameters.cbegin(); iter != _parameters.cend(); iter++)
+	{
+		const char* key = iter->Key();
+		for (std::map<String, String>::const_iterator iterA = _aliases.cbegin(); iterA != _aliases.cend(); iterA++)
+		{
+			if (!strcmp(iterA->second, key))
+			{
+				s += String::Format("  %-*s  is the same as %s\n", static_cast<int>(width1), iterA->first.Ptr(), iterA->second.Ptr());
+			}
+		}
 	}
 	return s;
 }

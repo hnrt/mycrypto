@@ -54,7 +54,16 @@ void File::OpenForRead(const char* path)
 {
 	Close();
 	int fd = -1;
-	errno_t rc = _sopen_s(&fd, path, _O_RDONLY | _O_BINARY, _SH_DENYWR, _S_IREAD | _S_IWRITE);
+	errno_t rc;
+	if (!strcmp(path, "-"))
+	{
+		fd = _dup(_fileno(stdin));
+		rc = (fd == -1) ? errno : 0;
+	}
+	else
+	{
+		rc = _sopen_s(&fd, path, _O_RDONLY | _O_BINARY, _SH_DENYWR, _S_IREAD | _S_IWRITE);
+	}
 	if (rc)
 	{
 		char msg[256];
@@ -78,7 +87,16 @@ void File::OpenForWrite(const char* path)
 {
 	Close();
 	int fd = -1;
-	errno_t rc = _sopen_s(&fd, path, _O_CREAT | _O_EXCL | _O_WRONLY | _O_BINARY, _SH_DENYWR, _S_IREAD | _S_IWRITE);
+	errno_t rc;
+	if (!strcmp(path, "-"))
+	{
+		fd = _dup(_fileno(stdout));
+		rc = (fd == -1) ? errno : 0;
+	}
+	else
+	{
+		rc = _sopen_s(&fd, path, _O_CREAT | _O_EXCL | _O_WRONLY | _O_BINARY, _SH_DENYWR, _S_IREAD | _S_IWRITE);
+	}
 	if (rc)
 	{
 		char msg[256];

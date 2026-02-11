@@ -6,6 +6,7 @@
 #include "OperationMode.h"
 #include "CipherMode.h"
 #include "DigestMode.h"
+#include "CipherPtr.h"
 #include "StringEx.h"
 #include "ByteString.h"
 #include "CommandLine.h"
@@ -56,9 +57,11 @@ namespace hnrt
 		bool SetInputPath(CommandLine& args);
 		bool SetOutputPath(CommandLine& args);
 		bool SetKey(CommandLine& args);
-		bool SetIv(CommandLine& args);
+		bool SetIV(CommandLine& args);
+		bool SetNonce(CommandLine& args);
 		bool SetPassphrase(CommandLine& args);
 		bool SetAdditionalAuthenticatedData(CommandLine& args);
+		bool Help(CommandLine& args);
 		void Run();
 		void Rollback();
 
@@ -69,8 +72,10 @@ namespace hnrt
 		void Encrypt();
 		void Decrypt();
 		void ComputeDigest();
-		void ComputeKey();
-		void ComputeIv();
+		void ComputeKey(const CipherPtr& cipher);
+		void ComputeIV(const CipherPtr& cipher);
+		void ComputeNonce(const CipherPtr& cipher);
+		bool IsStandardOutputMode() const;
 
 		OperationMode _operationMode;
 		CipherMode _cipherMode;
@@ -82,6 +87,7 @@ namespace hnrt
 		String _aad;
 		ByteString _key;
 		ByteString _iv;
+		ByteString _nonce;
 	};
 }
 

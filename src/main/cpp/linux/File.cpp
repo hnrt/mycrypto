@@ -53,9 +53,15 @@ size_t File::Count() const
 void File::OpenForRead(const char* path)
 {
 	Close();
-	stream = fopen(path, "r");
+	int fd = !strcmp(path, "-") ? dup(fileno(stdin)) : open(path, O_RDONLY);
+	if (fd == -1)
+	{
+		throw std::runtime_error(String::Format("Failed to open \"%s\": %s", path, strerror(errno)));
+	}
+	stream = fdopen(fd, "r");
 	if (!stream)
 	{
+		close(fd);
 		throw std::runtime_error(String::Format("Failed to open \"%s\": %s", path, strerror(errno)));
 	}
 	this->path = path;
@@ -66,7 +72,7 @@ void File::OpenForRead(const char* path)
 void File::OpenForWrite(const char* path)
 {
 	Close();
-	int fd = open(path, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	int fd = !strcmp(path, "-") ? dup(fileno(stdout)) : open(path, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (fd == -1)
 	{
 		throw std::runtime_error(String::Format("Failed to create %s: %s", path, strerror(errno)));
