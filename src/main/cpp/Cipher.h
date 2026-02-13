@@ -8,18 +8,6 @@
 #include "ByteString.h"
 #include <stddef.h>
 
-#define AES_BLOCK_LENGTH 16
-
-#define AES_128_KEY_LENGTH 16
-#define AES_192_KEY_LENGTH 24
-#define AES_256_KEY_LENGTH 32
-
-#define CCM_IV_LENGTH 7
-#define CCM_TAG_LENGTH 12
-
-#define GCM_IV_LENGTH 12
-#define GCM_TAG_LENGTH 16
-
 namespace hnrt
 {
 	class Cipher
@@ -53,8 +41,6 @@ namespace hnrt
 
 		int _r;
 		CipherMode _cm;
-		int _nonceLength;
-		int _tagLength;
 	};
 }
 

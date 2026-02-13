@@ -10,6 +10,8 @@
 #include "StringEx.h"
 #include "ByteString.h"
 #include "CommandLine.h"
+#include "File.h"
+#include <stdio.h>
 
 namespace hnrt
 {
@@ -61,6 +63,8 @@ namespace hnrt
 		bool SetNonce(CommandLine& args);
 		bool SetPassphrase(CommandLine& args);
 		bool SetAdditionalAuthenticatedData(CommandLine& args);
+		bool SetNonceLength(CommandLine& args);
+		bool SetTagLength(CommandLine& args);
 		bool Help(CommandLine& args);
 		void Run();
 		void Rollback();
@@ -69,13 +73,18 @@ namespace hnrt
 
 		void SetCipherMode(CipherMode mode);
 		void SetDigestMode(DigestMode mode);
+		bool IsStandardInputMode() const;
+		bool IsStandardOutputMode() const;
 		void Encrypt();
 		void Decrypt();
-		void ComputeDigest();
+		void VerifyKey(const CipherPtr& cipher);
+		void VerifyIV(CipherPtr& cipher, bool generateIfNotSpecified = false);
+		void ReadOnceFromStandardInput(File& inputStream);
 		void ComputeKey(const CipherPtr& cipher);
 		void ComputeIV(const CipherPtr& cipher);
 		void ComputeNonce(const CipherPtr& cipher);
-		bool IsStandardOutputMode() const;
+		void PrintCipherResult(const ByteString& tag, const File& inputStream, const File& outputStream);
+		void ComputeDigest();
 
 		OperationMode _operationMode;
 		CipherMode _cipherMode;
@@ -88,6 +97,9 @@ namespace hnrt
 		ByteString _key;
 		ByteString _iv;
 		ByteString _nonce;
+		int _nonceLength;
+		int _tagLength;
+		FILE* _console;
 	};
 }
 

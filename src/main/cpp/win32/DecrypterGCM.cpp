@@ -4,6 +4,7 @@
 #include "DecrypterGCM.h"
 #include "Decrypter.h"
 #include "CipherMode.h"
+#include "AESGCM.h"
 #include "ByteString.h"
 #include "BCryptAlgHandle.h"
 #include "BCryptKeyHandle.h"
@@ -17,6 +18,8 @@ using namespace hnrt;
 
 DecrypterGCM::DecrypterGCM(CipherMode cm)
 	: Decrypter(cm)
+	, _nonceLength(AES_GCM_NONCE_LENGTH_DEFAULT)
+	, _tagLength(AES_GCM_TAG_LENGTH_DEFAULT)
 {
 	DEBUG("#DecrypterGCM::ctor\n");
 }
@@ -25,6 +28,30 @@ DecrypterGCM::DecrypterGCM(CipherMode cm)
 DecrypterGCM::~DecrypterGCM()
 {
 	DEBUG("#DecrypterGCM::dtor\n");
+}
+
+
+int DecrypterGCM::GetNonceLength() const
+{
+	return _nonceLength;
+}
+
+
+void DecrypterGCM::SetNonceLength(int len)
+{
+	aes_gcm::SetNonceLength(_nonceLength, len);
+}
+
+
+int DecrypterGCM::GetTagLength() const
+{
+	return _tagLength;
+}
+
+
+void DecrypterGCM::SetTagLength(int len)
+{
+	aes_gcm::SetTagLength(_tagLength, len);
 }
 
 

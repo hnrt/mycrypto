@@ -174,6 +174,7 @@
     <ClCompile Include="..\src\main\cpp\win32\BCryptHashHandle.cpp" />
     <ClCompile Include="..\src\main\cpp\win32\BCryptKeyHandle.cpp" />
     <ClCompile Include="..\src\main\cpp\win32\CipherPlatform.cpp" />
+    <ClCompile Include="..\src\main\cpp\win32\Cipher_CreateInstance.cpp" />
     <ClCompile Include="..\src\main\cpp\win32\Decrypter.cpp" />
     <ClCompile Include="..\src\main\cpp\win32\DecrypterCBC.cpp" />
     <ClCompile Include="..\src\main\cpp\win32\DecrypterCCM.cpp" />
@@ -190,6 +191,9 @@
     <ClCompile Include="..\src\main\cpp\win32\File.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\main\cpp\AES.h" />
+    <ClInclude Include="..\src\main\cpp\AESCCM.h" />
+    <ClInclude Include="..\src\main\cpp\AESGCM.h" />
     <ClInclude Include="..\src\main\cpp\Array.h" />
     <ClInclude Include="..\src\main\cpp\ByteString.h" />
     <ClInclude Include="..\src\main\cpp\CipherPtr.h" />

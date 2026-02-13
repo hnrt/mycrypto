@@ -111,6 +111,7 @@ OBJS1=$(OBJDIR)ByteString.o \
 	$(OBJDIR)MyCryptographyUtilityApplication.o \
 	$(OBJDIR)Parameter.o \
 	$(OBJDIR)StringEx.o \
+	$(OBJDIR)linux/Cipher_CreateInstance.o \
 	$(OBJDIR)linux/CipherPlatform.o \
 	$(OBJDIR)linux/DigestPlatform.o \
 	$(OBJDIR)linux/Decrypter.o \

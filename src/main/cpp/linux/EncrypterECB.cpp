@@ -25,6 +25,12 @@ EncrypterECB::~EncrypterECB()
 }
 
 
+int EncrypterECB::GetIvLength() const
+{
+	return 0;
+}
+
+
 void EncrypterECB::SetKey(void* key)
 {
 	DEBUG("#EncrypterECB::SetKey(k)\n");

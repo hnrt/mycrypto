@@ -18,6 +18,10 @@ namespace hnrt
 		DecrypterCCM(CipherMode cm);
 		DecrypterCCM(const DecrypterCCM& src) = delete;
 		virtual ~DecrypterCCM();
+		virtual int GetNonceLength() const;
+		virtual void SetNonceLength(int len);
+		virtual int GetTagLength() const;
+		virtual void SetTagLength(int len);
 		virtual void SetKey(void* key, void* iv, void* tag);
 		virtual void SetKey(void* key, void* iv, void* tag, void* aad, size_t len);
 		virtual ByteString Update(void* inputBuffer, size_t inputLength);
@@ -25,6 +29,8 @@ namespace hnrt
 
 	private:
 
+		int _nonceLength;
+		int _tagLength;
 		ByteString _aad;
 		unsigned char* _buf;
 		size_t _cap;

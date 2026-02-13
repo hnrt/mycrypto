@@ -4,6 +4,7 @@
 #include "EncrypterECB.h"
 #include "Encrypter.h"
 #include "CipherMode.h"
+#include "AES.h"
 #include "ByteString.h"
 #include "BCryptAlgHandle.h"
 #include "BCryptKeyHandle.h"
@@ -24,6 +25,12 @@ EncrypterECB::EncrypterECB(CipherMode cm)
 EncrypterECB::~EncrypterECB()
 {
 	DEBUG("#EncrypterECB::dtor\n");
+}
+
+
+int EncrypterECB::GetIvLength() const
+{
+	return 0;
 }
 
 

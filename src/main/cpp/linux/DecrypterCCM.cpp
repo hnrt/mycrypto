@@ -4,6 +4,7 @@
 #include "DecrypterCCM.h"
 #include "Decrypter.h"
 #include "CipherMode.h"
+#include "AESCCM.h"
 #include "ByteString.h"
 #include "StringEx.h"
 #include "Heap.h"
@@ -19,6 +20,8 @@ using namespace hnrt;
 
 DecrypterCCM::DecrypterCCM(CipherMode cm)
 	: Decrypter(cm)
+	, _nonceLength(AES_CCM_NONCE_LENGTH_DEFAULT)
+	, _tagLength(AES_CCM_TAG_LENGTH_DEFAULT)
 	, _aad()
 	, _buf(nullptr)
 	, _cap(0)
@@ -32,6 +35,30 @@ DecrypterCCM::~DecrypterCCM()
 {
 	DEBUG("#DecrypterCCM::dtor\n");
 	free(_buf);
+}
+
+
+int DecrypterCCM::GetNonceLength() const
+{
+	return _nonceLength;
+}
+
+
+void DecrypterCCM::SetNonceLength(int len)
+{
+	aes_ccm::SetNonceLength(_nonceLength, len);
+}
+
+
+int DecrypterCCM::GetTagLength() const
+{
+	return _tagLength;
+}
+
+
+void DecrypterCCM::SetTagLength(int len)
+{
+	aes_ccm::SetTagLength(_tagLength, len);
 }
 
 

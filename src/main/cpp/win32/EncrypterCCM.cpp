@@ -4,6 +4,7 @@
 #include "EncrypterCCM.h"
 #include "Encrypter.h"
 #include "CipherMode.h"
+#include "AESCCM.h"
 #include "ByteString.h"
 #include "BCryptAlgHandle.h"
 #include "BCryptKeyHandle.h"
@@ -21,6 +22,8 @@ using namespace hnrt;
 
 EncrypterCCM::EncrypterCCM(CipherMode cm)
 	: Encrypter(cm)
+	, _nonceLength(AES_CCM_NONCE_LENGTH_DEFAULT)
+	, _tagLength(AES_CCM_TAG_LENGTH_DEFAULT)
 #ifdef CCM_BUFFERING
 	, _buf(nullptr)
 	, _cap(0)
@@ -37,6 +40,30 @@ EncrypterCCM::~EncrypterCCM()
 #ifdef CCM_BUFFERING
 	free(_buf);
 #endif //CCM_BUFFERING
+}
+
+
+int EncrypterCCM::GetNonceLength() const
+{
+	return _nonceLength;
+}
+
+
+void EncrypterCCM::SetNonceLength(int len)
+{
+	aes_ccm::SetNonceLength(_nonceLength, len);
+}
+
+
+int EncrypterCCM::GetTagLength() const
+{
+	return _tagLength;
+}
+
+
+void EncrypterCCM::SetTagLength(int len)
+{
+	aes_ccm::SetTagLength(_tagLength, len);
 }
 
 

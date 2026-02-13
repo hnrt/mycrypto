@@ -17,6 +17,7 @@ namespace hnrt
 		EncrypterECB(CipherMode cm);
 		EncrypterECB(const EncrypterECB& src) = delete;
 		virtual ~EncrypterECB();
+		virtual int GetIvLength() const;
 		virtual void SetKey(void* key);
 	};
 }

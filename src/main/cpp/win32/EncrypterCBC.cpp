@@ -4,6 +4,7 @@
 #include "EncrypterCBC.h"
 #include "Encrypter.h"
 #include "CipherMode.h"
+#include "AES.h"
 #include "ByteString.h"
 #include "BCryptAlgHandle.h"
 #include "BCryptKeyHandle.h"

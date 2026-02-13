@@ -16,132 +16,144 @@ using namespace hnrt;
 
 
 File::File()
-	: stream(NULL)
-	, path()
-	, count(0)
+	: _stream(NULL)
+	, _path()
+	, _count(0)
 {
 }
 
 
 File::~File()
 {
-	if (stream)
+	if (_stream)
 	{
-		fclose(stream);
+		fclose(_stream);
 	}
 }
 
 
 File::operator FILE* ()
 {
-	return stream;
+	return _stream;
 }
 
 
 File::operator bool()
 {
-	return stream != NULL;
+	return _stream != NULL;
 }
 
 
 size_t File::Count() const
 {
-	return count;
+	return _count;
 }
 
 
 void File::OpenForRead(const char* path)
 {
 	Close();
+	_path = path ? path : "[standard input]";
+	_count = 0;
 	int fd = -1;
 	errno_t rc;
-	if (!strcmp(path, "-"))
+	if (path)
 	{
-		fd = _dup(_fileno(stdin));
-		rc = (fd == -1) ? errno : 0;
+		rc = _sopen_s(&fd, path, _O_RDONLY | _O_BINARY, _SH_DENYWR, _S_IREAD | _S_IWRITE);
 	}
 	else
 	{
-		rc = _sopen_s(&fd, path, _O_RDONLY | _O_BINARY, _SH_DENYWR, _S_IREAD | _S_IWRITE);
+		fd = _dup(_fileno(stdin));
+		rc = (fd == -1) ? errno : 0;
 	}
 	if (rc)
 	{
 		char msg[256];
 		rc = strerror_s(msg, sizeof(msg), rc);
-		throw std::runtime_error(String::Format("Failed to open \"%s\": %s", path, rc ? "?" : msg));
+		throw std::runtime_error(String::Format("Failed to open \"%s\": %s", _path, rc ? "?" : msg));
 	}
-	stream = _fdopen(fd, "rb");
-	if (!stream)
+	if (!path && _setmode(fd, _O_BINARY) == -1) {
+		char msg[256];
+		rc = strerror_s(msg, sizeof(msg), errno);
+		_close(fd);
+		throw std::runtime_error(String::Format("Failed to setmode(BINARY) to \"%s\": %s", _path, rc ? "?" : msg));
+	}
+	_stream = _fdopen(fd, "rb");
+	if (!_stream)
 	{
 		char msg[256];
 		rc = strerror_s(msg, sizeof(msg), errno);
 		_close(fd);
-		throw std::runtime_error(String::Format("Failed to fdopen \"%s\": %s", path, rc ? "?" : msg));
+		throw std::runtime_error(String::Format("Failed to fdopen \"%s\": %s", _path, rc ? "?" : msg));
 	}
-	this->path = path;
-	count = 0;
 }
 
 
 void File::OpenForWrite(const char* path)
 {
 	Close();
+	_path = path ? path : "[standard output]";
+	_count = 0;
 	int fd = -1;
 	errno_t rc;
-	if (!strcmp(path, "-"))
+	if (path)
 	{
-		fd = _dup(_fileno(stdout));
-		rc = (fd == -1) ? errno : 0;
+		rc = _sopen_s(&fd, path, _O_CREAT | _O_EXCL | _O_WRONLY | _O_BINARY, _SH_DENYWR, _S_IREAD | _S_IWRITE);
 	}
 	else
 	{
-		rc = _sopen_s(&fd, path, _O_CREAT | _O_EXCL | _O_WRONLY | _O_BINARY, _SH_DENYWR, _S_IREAD | _S_IWRITE);
+		fd = _dup(_fileno(stdout));
+		rc = (fd == -1) ? errno : 0;
 	}
 	if (rc)
 	{
 		char msg[256];
 		rc = strerror_s(msg, sizeof(msg), rc);
-		throw std::runtime_error(String::Format("Failed to create \"%s\": %s", path, rc ? "?" : msg));
+		throw std::runtime_error(String::Format("Failed to create \"%s\": %s", _path, rc ? "?" : msg));
 	}
-	stream = _fdopen(fd, "wb");
-	if (!stream)
+	if (!path && _setmode(fd, _O_BINARY) == -1) {
+		char msg[256];
+		rc = strerror_s(msg, sizeof(msg), errno);
+		_close(fd);
+		throw std::runtime_error(String::Format("Failed to setmode(BINARY) to \"%s\": %s", _path, rc ? "?" : msg));
+	}
+	_stream = _fdopen(fd, "wb");
+	if (!_stream)
 	{
 		char msg[256];
 		rc = strerror_s(msg, sizeof(msg), errno);
 		_close(fd);
-		throw std::runtime_error(String::Format("Failed to fdopen \"%s\": %s", path, rc ? "?" : msg));
+		throw std::runtime_error(String::Format("Failed to fdopen \"%s\": %s", _path, rc ? "?" : msg));
 	}
-	this->path = path;
-	count = 0;
 }
 
 
 void File::OpenTemporary()
 {
 	Close();
-	errno_t rc = tmpfile_s(&stream);
+	_path = "[temporary file]";
+	_count = 0;
+	errno_t rc = tmpfile_s(&_stream);
 	if (rc)
 	{
 		char msg[256];
 		rc = strerror_s(msg, sizeof(msg), errno);
 		throw std::runtime_error(String::Format("Failed to open a temporary file: %s", rc ? "?" : msg));
 	}
-	path = "(temporary file)";
-	count = 0;
 }
 
 
 void File::Close()
 {
-	if (stream)
+	if (_stream)
 	{
-		bool ret = fclose(stream) == 0;
-		stream = NULL;
+		bool ret = fclose(_stream) == 0;
+		_stream = NULL;
 		if (!ret)
 		{
 			char msg[256];
 			errno_t rc = strerror_s(msg, sizeof(msg), errno);
-			throw std::runtime_error(String::Format("Failed to close \"%s\": %s", path, rc ? "?" : msg));
+			throw std::runtime_error(String::Format("Failed to close \"%s\": %s", _path, rc ? "?" : msg));
 		}
 	}
 }
@@ -149,74 +161,67 @@ void File::Close()
 
 size_t File::Read(void* ptr, size_t len)
 {
-	size_t nbytes = fread(ptr, 1, len, stream);
-	if (ferror(stream))
+	size_t nbytes = fread(ptr, 1, len, _stream);
+	if (ferror(_stream))
 	{
 		char msg[256];
 		errno_t rc = strerror_s(msg, sizeof(msg), errno);
-		throw std::runtime_error(String::Format("Failed to read from \"%s\": %s", path, rc ? "?" : msg));
+		throw std::runtime_error(String::Format("Failed to read from \"%s\": %s", _path, rc ? "?" : msg));
 	}
-	count += nbytes;
+	_count += nbytes;
 	return nbytes;
 }
 
 
 void File::Write(void* ptr, size_t len)
 {
-	size_t actual = fwrite(ptr, 1, len, stream);
-	if (ferror(stream))
+	size_t actual = fwrite(ptr, 1, len, _stream);
+	if (ferror(_stream))
 	{
 		char msg[256];
 		errno_t rc = strerror_s(msg, sizeof(msg), errno);
-		throw std::runtime_error(String::Format("Failed to write to \"%s\": %s", path, rc ? "?" : msg));
+		throw std::runtime_error(String::Format("Failed to write to \"%s\": %s", _path, rc ? "?" : msg));
 	}
-	count += actual;
+	_count += actual;
 	if (actual != len)
 	{
-		throw std::runtime_error(String::Format("Failed to write to \"%s\": attempted %lu, actual %lu.", path, len, actual));
+		throw std::runtime_error(String::Format("Failed to write to \"%s\": attempted %lu, actual %lu.", _path, len, actual));
 	}
 }
 
 
 void File::Flush()
 {
-	if (fflush(stream))
+	if (fflush(_stream))
 	{
 		char msg[256];
 		errno_t rc = strerror_s(msg, sizeof(msg), errno);
-		throw std::runtime_error(String::Format("Failed to flush to \"%s\": %s", path, rc ? "?" : msg));
+		throw std::runtime_error(String::Format("Failed to flush to \"%s\": %s", _path, rc ? "?" : msg));
 	}
 }
 
 
 void File::Seek(ptrdiff_t offset, int origin)
 {
-	if (_fseeki64(stream, offset, origin))
+	if (_fseeki64(_stream, offset, origin))
 	{
-		throw std::runtime_error(String::Format("Failed to seek the pointer of \"%s\".", path));
+		throw std::runtime_error(String::Format("Failed to seek the pointer of \"%s\".", _path));
 	}
 }
 
 
 void File::Rewind()
 {
-	rewind(stream);
-	count = 0;
+	rewind(_stream);
+	_count = 0;
 }
 
 
-bool File::Exists(const char* path)
+size_t File::Size()
 {
-	struct stat st;
-	return stat(path, &st) == 0;
-}
-
-
-size_t File::Size(const char* path)
-{
-	struct stat st;
+	struct _stat st;
 	memset(&st, 0, sizeof(st));
-	if (!stat(path, &st))
+	if (!_fstat(_fileno(_stream), &st))
 	{
 		return st.st_size;
 	}
@@ -224,8 +229,15 @@ size_t File::Size(const char* path)
 	{
 		char msg[256];
 		errno_t rc = strerror_s(msg, sizeof(msg), errno);
-		throw std::runtime_error(String::Format("Failed to get stats from \"%s\": %s", path, rc ? "?" : msg));
+		throw std::runtime_error(String::Format("Failed to get stats from \"%s\": %s", _path, rc ? "?" : msg));
 	}
+}
+
+
+bool File::Exists(const char* path)
+{
+	struct stat st;
+	return stat(path, &st) == 0;
 }
 
 

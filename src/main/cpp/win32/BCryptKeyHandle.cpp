@@ -144,6 +144,10 @@ ByteString BCryptKeyHandle::Decrypt(void* pData, size_t cbData, BCryptAuthentica
     }
     ByteString decrypted(cbPlainText);
     status = BCryptDecrypt(_h, reinterpret_cast<PUCHAR>(pData), static_cast<ULONG>(cbData), &info, reinterpret_cast<PUCHAR>(pIV), static_cast<ULONG>(cbIV), decrypted, cbPlainText, &cbPlainText, 0);
+    if (status == STATUS_AUTH_TAG_MISMATCH)
+    {
+        throw std::runtime_error("Tag mismatch!");
+    }
     if (status != STATUS_SUCCESS)
     {
         throw std::runtime_error(String::Format("BCryptDecrypt(%p,%zu,%lu) failed with status of %s.", pData, cbData, cbPlainText, BCryptErrorLabel(status)));

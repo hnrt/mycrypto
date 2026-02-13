@@ -5,6 +5,7 @@
 #include "Cipher.h"
 #include "CipherMode.h"
 #include "CipherPlatform.h"
+#include "AES.h"
 #include "ByteString.h"
 #include "Array.h"
 #include "BCryptAlgHandle.h"

@@ -34,6 +34,9 @@ MyCryptographyUtilityApplication::MyCryptographyUtilityApplication()
 	, _key()
 	, _iv()
 	, _nonce()
+	, _nonceLength(0)
+	, _tagLength(0)
+	, _console(stdout)
 {
 }
 
@@ -391,7 +394,10 @@ bool MyCryptographyUtilityApplication::SetOutputPath(CommandLine& args)
 		throw std::runtime_error("Output file path cannot be specified twice.");
 	}
 	_outputPath = args.Argument();
-	_temporaryPath = IsStandardOutputMode() ? _outputPath : String::Format("%s.%zu", _outputPath.Ptr(), static_cast<size_t>(time(NULL)));
+	if (!IsStandardOutputMode())
+	{
+		_temporaryPath = String::Format("%s.%zu", _outputPath.Ptr(), static_cast<size_t>(time(NULL)));
+	}
 	DEBUG("#SetOutputPath(%s)\n", _outputPath.Ptr());
 	return true;
 }
@@ -477,6 +483,48 @@ bool MyCryptographyUtilityApplication::SetAdditionalAuthenticatedData(CommandLin
 }
 
 
+bool MyCryptographyUtilityApplication::SetNonceLength(CommandLine& args)
+{
+	if (!args.Next())
+	{
+		throw std::runtime_error("-noncelength: Value is missing.");
+	}
+	else if (_nonceLength > 0)
+	{
+		throw std::runtime_error("Nonce length cannot be specified twice.");
+	}
+	char* stopped = nullptr;
+	_nonceLength = strtoul(args.Argument(), &stopped, 10);
+	if (args.Argument() == const_cast<const char*>(stopped) || *stopped || _nonceLength <= 0)
+	{
+		throw std::runtime_error("-noncelength: Value is invalid.");
+	}
+	DEBUG("#SetNonceLength(%d)\n", _nonceLength);
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetTagLength(CommandLine& args)
+{
+	if (!args.Next())
+	{
+		throw std::runtime_error("-taglength: Value is missing.");
+	}
+	else if (_tagLength > 0)
+	{
+		throw std::runtime_error("Tag length cannot be specified twice.");
+	}
+	char* stopped = nullptr;
+	_tagLength = strtoul(args.Argument(), &stopped, 10);
+	if (args.Argument() == const_cast<const char*>(stopped) || *stopped || _tagLength <= 0)
+	{
+		throw std::runtime_error("-taglength: Value is invalid.");
+	}
+	DEBUG("#SetTagLength(%d)\n", _tagLength);
+	return true;
+}
+
+
 bool MyCryptographyUtilityApplication::Help(CommandLine& args)
 {
 	return false;
@@ -493,6 +541,7 @@ void MyCryptographyUtilityApplication::Run()
 		{
 			_cipherMode = CipherMode::AES_256_GCM;
 		}
+		_console = IsStandardOutputMode() ? stderr : stdout;
 		switch (_operationMode)
 		{
 		case OperationMode::ENCRYPTION:
@@ -520,11 +569,23 @@ void MyCryptographyUtilityApplication::Run()
 
 void MyCryptographyUtilityApplication::Rollback()
 {
-	if (_temporaryPath && !IsStandardOutputMode() && File::Exists(_temporaryPath))
+	if (_temporaryPath && File::Exists(_temporaryPath))
 	{
 		DEBUG("#File::Delete(%s)\n", _temporaryPath.Ptr());
 		File::Delete(_temporaryPath);
 	}
+}
+
+
+bool MyCryptographyUtilityApplication::IsStandardInputMode() const
+{
+	return _inputPath && !strcmp(_inputPath, "-") ? true : false;
+}
+
+
+bool MyCryptographyUtilityApplication::IsStandardOutputMode() const
+{
+	return _outputPath && !strcmp(_outputPath, "-") ? true : false;
 }
 
 
@@ -538,149 +599,106 @@ void MyCryptographyUtilityApplication::Encrypt()
 	{
 		throw std::runtime_error("Output file path is not specified.");
 	}
+
 	CipherPtr cipher;
 	cipher.Initialize(_cipherMode, OperationMode::ENCRYPTION);
-	if (!_passphrase && !_key)
-	{
-		throw std::runtime_error("Neither passphrase nor key is specified.");
-	}
-	else if (_passphrase && _key)
-	{
-		throw std::runtime_error("Both passphrase and key cannot be not specified.");
-	}
-	else if (_passphrase)
-	{
-		ComputeKey(cipher);
-	}
-	else if (static_cast<size_t>(cipher->GetKeyLength()) != _key.Length())
-	{
-		throw std::runtime_error(String::Format("The length of key does not meet the requirement. Expected=%d Actual=%zu", cipher->GetKeyLength(), _key.Length()));
-	}
-	if (cipher->GetNonceLength())
-	{
-		if (!_nonce)
-		{
-			ComputeNonce(cipher);
-		}
-		if (static_cast<size_t>(cipher->GetNonceLength()) != _nonce.Length())
-		{
-			throw std::runtime_error(String::Format("The length of nonce does not meet the requirement. Expected=%d Actual=%zu", cipher->GetNonceLength(), _nonce.Length()));
-		}
-	}
-	else if (cipher->GetIvLength())
-	{
-		if (!_iv)
-		{
-			ComputeIV(cipher);
-		}
-		if (static_cast<size_t>(cipher->GetIvLength()) != _iv.Length())
-		{
-			throw std::runtime_error(String::Format("The length of IV does not meet the requirement. Expected=%d Actual=%zu", cipher->GetIvLength(), _iv.Length()));
-		}
-	}
-	else if (_iv || _nonce)
-	{
-		throw std::runtime_error("Neither IV nor nonce can be specified.");
-	}
-	if (!File::Exists(_inputPath))
-	{
-		throw std::runtime_error(String::Format("Input file is not found: %s", _inputPath.Ptr()));
-	}
-	if (!IsStandardOutputMode() && File::Exists(_outputPath))
-	{
-		throw std::runtime_error(String::Format("Output file already exists: %s", _outputPath.Ptr()));
-	}
+
+	VerifyKey(cipher);
+
+	VerifyIV(cipher, true);
+
 	File inputStream;
-	inputStream.OpenForRead(_inputPath);
-	size_t inputLength = inputStream.Size(_inputPath);
-	if (!inputLength)
+	if (IsStandardInputMode())
 	{
-		throw std::runtime_error("Input file is empty. No content is to be encrypted.");
+		inputStream.OpenForRead();
 	}
+	else
+	{
+		if (!File::Exists(_inputPath))
+		{
+			throw std::runtime_error(String::Format("Input file is not found: %s", _inputPath.Ptr()));
+		}
+		inputStream.OpenForRead(_inputPath);
+	}
+
 	File outputStream;
-	outputStream.OpenForWrite(_temporaryPath);
+	if (IsStandardOutputMode())
+	{
+		outputStream.OpenForWrite();
+	}
+	else
+	{
+		if (File::Exists(_outputPath))
+		{
+			throw std::runtime_error(String::Format("Output file already exists: %s", _outputPath.Ptr()));
+		}
+		outputStream.OpenForWrite(_temporaryPath);
+	}
+
 	if (cipher->GetNonceLength())
 	{
 		if (_aad)
 		{
 			cipher->SetKey(_key, _nonce, _aad.Ptr(), _aad.Length());
-			if (!IsStandardOutputMode())
-			{
-				fprintf(stdout, "KEY=%s\n", String::Hex(_key).Ptr());
-				fprintf(stdout, "NONCE=%s\n", String::Hex(_nonce).Ptr());
-				fprintf(stdout, "AAD=%s\n", String::Hex(_aad, _aad.Length()).Ptr());
-			}
 		}
 		else
 		{
 			cipher->SetKey(_key, _nonce);
-			if (!IsStandardOutputMode())
-			{
-				fprintf(stdout, "KEY=%s\n", String::Hex(_key).Ptr());
-				fprintf(stdout, "NONCE=%s\n", String::Hex(_nonce).Ptr());
-			}
 		}
 		outputStream.Write(_nonce, _nonce.Length());
 	}
 	else if (cipher->GetIvLength())
 	{
 		cipher->SetKey(_key, _iv);
-		if (!IsStandardOutputMode())
-		{
-			fprintf(stdout, "KEY=%s\n", String::Hex(_key).Ptr());
-			fprintf(stdout, "IV=%s\n", String::Hex(_iv).Ptr());
-		}
 		outputStream.Write(_iv, _iv.Length());
 	}
 	else
 	{
 		cipher->SetKey(_key);
-		if (!IsStandardOutputMode())
-		{
-			fprintf(stdout, "KEY=%s\n", String::Hex(_key).Ptr());
-		}
 	}
-	size_t remaining = inputLength;
-	unsigned char plaintext[BUFFER_SIZE];
-	while (BUFFER_SIZE < remaining)
+
+	unsigned char plaintext[2][BUFFER_SIZE];
+	size_t current = 0;
+	size_t plaintextLength = inputStream.Read(plaintext[current], BUFFER_SIZE);
+	if (!plaintextLength)
 	{
-		size_t plaintextLength = inputStream.Read(plaintext, BUFFER_SIZE);
-		if (plaintextLength < BUFFER_SIZE)
+		throw std::runtime_error("Input file is empty. No content is to be encrypted.");
+	}
+	while (plaintextLength == BUFFER_SIZE)
+	{
+		plaintextLength = inputStream.Read(plaintext[current ^ 1], BUFFER_SIZE);
+		if (!plaintextLength)
 		{
-			throw std::runtime_error("Failed to read from input file.");
+			plaintextLength = BUFFER_SIZE;
+			break;
 		}
-		ByteString ciphertext = cipher->Update(plaintext, BUFFER_SIZE);
+		ByteString ciphertext = cipher->Update(plaintext[current], BUFFER_SIZE);
 		if (ciphertext.Length() > 0)
 		{
 			outputStream.Write(ciphertext, ciphertext.Length());
 		}
-		remaining -= BUFFER_SIZE;
+		current ^= 1;
 	}
-	size_t plaintextLength = inputStream.Read(plaintext, remaining);
-	if (plaintextLength < remaining)
-	{
-		throw std::runtime_error("Failed to read from input file.");
-	}
-	ByteString ciphertext = cipher->Finalize(plaintext, remaining);
+	ByteString ciphertext = cipher->Finalize(plaintext[current], plaintextLength);
 	if (ciphertext.Length() > 0)
 	{
 		outputStream.Write(ciphertext, ciphertext.Length());
 	}
+	ByteString tag;
 	if (cipher->GetTagLength())
 	{
-		ByteString tag = cipher->GetTag();
-		if (!IsStandardOutputMode())
-		{
-			fprintf(stdout, "TAG=%s\n", String::Hex(tag).Ptr());
-		}
+		tag = cipher->GetTag();
 		outputStream.Write(tag, tag.Length());
 	}
+
 	outputStream.Flush();
 	outputStream.Close();
 	inputStream.Close();
-	if (!IsStandardOutputMode())
+
+	PrintCipherResult(tag, inputStream, outputStream);
+
+	if (_temporaryPath)
 	{
-		fprintf(stdout, "Encrypted: %zu bytes in %zu bytes out\n", inputStream.Count(), outputStream.Count());
 		File::Rename(_temporaryPath, _outputPath);
 	}
 }
@@ -696,65 +714,49 @@ void MyCryptographyUtilityApplication::Decrypt()
 	{
 		throw std::runtime_error("Output file path is not specified.");
 	}
+
 	CipherPtr cipher;
 	cipher.Initialize(_cipherMode, OperationMode::DECRYPTION);
-	if (!_passphrase && !_key)
-	{
-		throw std::runtime_error("Neither passphrase nor key is specified.");
-	}
-	else if (_passphrase && _key)
-	{
-		throw std::runtime_error("Both passphrase and key cannot be not specified.");
-	}
-	else if (_passphrase)
-	{
-		ComputeKey(cipher);
-	}
-	else if (static_cast<size_t>(cipher->GetKeyLength()) != _key.Length())
-	{
-		throw std::runtime_error(String::Format("The length of key does not meet the requirement. Expected=%d Actual=%zu", cipher->GetKeyLength(), _key.Length()));
-	}
-	if (cipher->GetNonceLength())
-	{
-		if (_nonce && static_cast<size_t>(cipher->GetNonceLength()) != _nonce.Length())
-		{
-			throw std::runtime_error(String::Format("The length of nonce does not meet the requirement. Expected=%d Actual=%zu", cipher->GetNonceLength(), _nonce.Length()));
-		}
-	}
-	else if (cipher->GetIvLength())
-	{
-		if (_iv && static_cast<size_t>(cipher->GetIvLength()) != _iv.Length())
-		{
-			throw std::runtime_error(String::Format("The length of IV does not meet the requirement. Expected=%d Actual=%zu", cipher->GetIvLength(), _iv.Length()));
-		}
-	}
-	else if (_iv)
-	{
-		throw std::runtime_error("IV cannot be specified for the target cipher.");
-	}
-	else if (_nonce)
-	{
-		throw std::runtime_error("Nonce cannot be specified for the target cipher.");
-	}
-	if (!File::Exists(_inputPath))
-	{
-		throw std::runtime_error(String::Format("Input file is not found: %s", _inputPath.Ptr()));
-	}
-	if (!IsStandardOutputMode() && File::Exists(_outputPath))
-	{
-		throw std::runtime_error(String::Format("Output file already exists: %s", _outputPath.Ptr()));
-	}
+
+	VerifyKey(cipher);
+
+	VerifyIV(cipher);
+
 	File inputStream;
-	inputStream.OpenForRead(_inputPath);
+	if (IsStandardInputMode())
+	{
+		ReadOnceFromStandardInput(inputStream);
+	}
+	else
+	{
+		if (!File::Exists(_inputPath))
+		{
+			throw std::runtime_error(String::Format("Input file is not found: %s", _inputPath.Ptr()));
+		}
+		inputStream.OpenForRead(_inputPath);
+	}
+
 	File outputStream;
-	outputStream.OpenForWrite(_temporaryPath);
-	size_t inputLength = inputStream.Size(_inputPath);
+	if (IsStandardOutputMode())
+	{
+		outputStream.OpenForWrite();
+	}
+	else
+	{
+		if (File::Exists(_outputPath))
+		{
+			throw std::runtime_error(String::Format("Output file already exists: %s", _outputPath.Ptr()));
+		}
+		outputStream.OpenForWrite(_temporaryPath);
+	}
+
+	size_t inputLength = inputStream.Size();
 	size_t headerLength = _nonce ? 0 : _iv ? 0 : cipher->GetNonceLength() ? cipher->GetNonceLength() : cipher->GetIvLength();
 	size_t footerLength = cipher->GetTagLength();
 	size_t envelopeLength = headerLength + footerLength;
 	if (inputLength < envelopeLength)
 	{
-		throw std::runtime_error("Input file is too short.");
+		throw std::runtime_error(String::Format("Input file is too short. Envelope=%zu Actual=%zu", envelopeLength, inputLength));
 	}
 	else if (inputLength == envelopeLength)
 	{
@@ -787,47 +789,27 @@ void MyCryptographyUtilityApplication::Decrypt()
 			_iv = header;
 		}
 	}
+
 	if (cipher->GetNonceLength())
 	{
 		if (_aad)
 		{
 			cipher->SetKey(_key, _nonce, tag, _aad, _aad.Length());
-			if (!IsStandardOutputMode())
-			{
-				fprintf(stdout, "KEY=%s\n", String::Hex(_key).Ptr());
-				fprintf(stdout, "NONCE=%s\n", String::Hex(_nonce).Ptr());
-				fprintf(stdout, "TAG=%s\n", String::Hex(tag).Ptr());
-				fprintf(stdout, "AAD=%s\n", String::Hex(_aad, _aad.Length()).Ptr());
-			}
 		}
 		else
 		{
 			cipher->SetKey(_key, _nonce, tag);
-			if (!IsStandardOutputMode())
-			{
-				fprintf(stdout, "KEY=%s\n", String::Hex(_key).Ptr());
-				fprintf(stdout, "NONCE=%s\n", String::Hex(_nonce).Ptr());
-				fprintf(stdout, "TAG=%s\n", String::Hex(tag).Ptr());
-			}
 		}
 	}
 	else if (cipher->GetIvLength())
 	{
 		cipher->SetKey(_key, _iv);
-		if (!IsStandardOutputMode())
-		{
-			fprintf(stdout, "KEY=%s\n", String::Hex(_key).Ptr());
-			fprintf(stdout, "IV=%s\n", String::Hex(_iv).Ptr());
-		}
 	}
 	else
 	{
 		cipher->SetKey(_key);
-		if (!IsStandardOutputMode())
-		{
-			fprintf(stdout, "KEY=%s\n", String::Hex(_key).Ptr());
-		}
 	}
+
 	size_t remaining = payloadLength;
 	unsigned char ciphertext[BUFFER_SIZE];
 	while (BUFFER_SIZE < remaining)
@@ -854,40 +836,129 @@ void MyCryptographyUtilityApplication::Decrypt()
 	{
 		outputStream.Write(plaintext, plaintext.Length());
 	}
+
 	outputStream.Flush();
 	outputStream.Close();
 	inputStream.Close();
-	if (!IsStandardOutputMode())
+
+	PrintCipherResult(tag, inputStream, outputStream);
+
+	if (_temporaryPath)
 	{
-		fprintf(stdout, "Decrypted: %zu bytes in %zu bytes out\n", inputStream.Count(), outputStream.Count());
 		File::Rename(_temporaryPath, _outputPath);
 	}
 }
 
 
-void MyCryptographyUtilityApplication::ComputeDigest()
+void MyCryptographyUtilityApplication::VerifyKey(const CipherPtr& cipher)
 {
-	if (!_inputPath.Ptr())
+	if (!_passphrase && !_key)
 	{
-		throw std::runtime_error("Input file path is not specified.");
+		throw std::runtime_error("Neither passphrase nor key is specified.");
 	}
-	DigestPtr digest;
-	digest.Initialize(_digestMode);
-	File inputStream;
-	inputStream.OpenForRead(_inputPath);
-	unsigned char buffer[BUFFER_SIZE];
-	while (!feof(inputStream))
+	else if (_passphrase && _key)
 	{
-		size_t length = inputStream.Read(buffer, BUFFER_SIZE);
-		if (length)
+		throw std::runtime_error("Both passphrase and key cannot be not specified.");
+	}
+	else if (_passphrase)
+	{
+		ComputeKey(cipher);
+	}
+	else if (static_cast<size_t>(cipher->GetKeyLength()) != _key.Length())
+	{
+		throw std::runtime_error(String::Format("Key is not valid in length. Expected=%d Actual=%zu", cipher->GetKeyLength(), _key.Length()));
+	}
+}
+
+
+void MyCryptographyUtilityApplication::VerifyIV(CipherPtr& cipher, bool generateIfNotSpecified)
+{
+	if (cipher->GetNonceLength())
+	{
+		if (_nonceLength)
 		{
-			digest->Update(buffer, length);
+			cipher->SetNonceLength(_nonceLength);
+		}
+		if (!_nonce)
+		{
+			if (generateIfNotSpecified)
+			{
+				ComputeNonce(cipher);
+			}
+		}
+		else if (static_cast<size_t>(cipher->GetNonceLength()) != _nonce.Length())
+		{
+			throw std::runtime_error(String::Format("Nonce is not valid in length. Expected=%d Actual=%zu", cipher->GetNonceLength(), _nonce.Length()));
+		}
+		if (_iv)
+		{
+			throw std::runtime_error("IV cannot be specified for the target cipher.");
+		}
+		if (_tagLength)
+		{
+			cipher->SetTagLength(_tagLength);
 		}
 	}
-	DEBUG("#Read %d bytes\n", static_cast<int>(inputStream.Count()));
-	ByteString result = digest->Finalize();
-	String hex = String::Lowercase(String::Hex(result));
-	fprintf(stdout, "%s\n", hex.Ptr());
+	else if (_nonce)
+	{
+		throw std::runtime_error("Nonce cannot be specified for the target cipher.");
+	}
+	else if (_nonceLength)
+	{
+		throw std::runtime_error("Nonce length cannot be specified for the target cipher.");
+	}
+	else if (_aad)
+	{
+		throw std::runtime_error("AAD cannot be specified for the target cipher.");
+	}
+	else if (_tagLength)
+	{
+		throw std::runtime_error("Tag length cannot be specified for the target cipher.");
+	}
+	else if (cipher->GetIvLength())
+	{
+		if (!_iv)
+		{
+			if (generateIfNotSpecified)
+			{
+				ComputeIV(cipher);
+			}
+		}
+		else if (static_cast<size_t>(cipher->GetIvLength()) != _iv.Length())
+		{
+			throw std::runtime_error(String::Format("IV is not valid in length. Expected=%d Actual=%zu", cipher->GetIvLength(), _iv.Length()));
+		}
+	}
+	else if (_iv)
+	{
+		throw std::runtime_error("IV cannot be specified for the target cipher.");
+	}
+}
+
+
+void MyCryptographyUtilityApplication::ReadOnceFromStandardInput(File& inputStream)
+{
+	inputStream.OpenTemporary();
+	File stdinStream;
+	stdinStream.OpenForRead();
+	while (true)
+	{
+		unsigned char buffer[BUFFER_SIZE];
+		size_t length = stdinStream.Read(buffer, BUFFER_SIZE);
+		DEBUG("#Read from %s: %zu\n", stdinStream.Path(), length);
+		if (length > 0)
+		{
+			inputStream.Write(buffer, length);
+		}
+		if (length < BUFFER_SIZE)
+		{
+			break;
+		}
+	}
+	stdinStream.Close();
+	inputStream.Flush();
+	DEBUG("#Wrote to %s: %zu\n", inputStream.Path(), inputStream.Count());
+	inputStream.Rewind();
 }
 
 
@@ -971,7 +1042,55 @@ void MyCryptographyUtilityApplication::ComputeNonce(const CipherPtr& cipher)
 }
 
 
-bool MyCryptographyUtilityApplication::IsStandardOutputMode() const
+void MyCryptographyUtilityApplication::PrintCipherResult(const ByteString& tag, const File& inputStream, const File& outputStream)
 {
-	return _outputPath && !strcmp(_outputPath, "-") ? true : false;
+	if (_aad)
+	{
+		fprintf(_console, "%10s %s\n", "KEY", String::Hex(_key).Ptr());
+		fprintf(_console, "     NONCE %s\n", String::Hex(_nonce).Ptr());
+		fprintf(_console, "       AAD %s\n", String::Hex(_aad, _aad.Length()).Ptr());
+		fprintf(_console, "       TAG %s\n", String::Hex(tag).Ptr());
+	}
+	else if (tag)
+	{
+		fprintf(_console, "       KEY %s\n", String::Hex(_key).Ptr());
+		fprintf(_console, "     NONCE %s\n", String::Hex(_nonce).Ptr());
+		fprintf(_console, "       TAG %s\n", String::Hex(tag).Ptr());
+	}
+	else if (_iv)
+	{
+		fprintf(_console, "       KEY %s\n", String::Hex(_key).Ptr());
+		fprintf(_console, "        IV %s\n", String::Hex(_iv).Ptr());
+	}
+	else
+	{
+		fprintf(_console, "       KEY %s\n", String::Hex(_key).Ptr());
+	}
+	fprintf(_console, "%10zu bytes in\n%10zu bytes out\n", inputStream.Count(), outputStream.Count());
+}
+
+
+void MyCryptographyUtilityApplication::ComputeDigest()
+{
+	if (!_inputPath.Ptr())
+	{
+		throw std::runtime_error("Input file path is not specified.");
+	}
+	DigestPtr digest;
+	digest.Initialize(_digestMode);
+	File inputStream;
+	inputStream.OpenForRead(_inputPath);
+	unsigned char buffer[BUFFER_SIZE];
+	while (!feof(inputStream))
+	{
+		size_t length = inputStream.Read(buffer, BUFFER_SIZE);
+		if (length)
+		{
+			digest->Update(buffer, length);
+		}
+	}
+	DEBUG("#Read %d bytes\n", static_cast<int>(inputStream.Count()));
+	ByteString result = digest->Finalize();
+	String hex = String::Lowercase(String::Hex(result));
+	fprintf(stdout, "%s\n", hex.Ptr());
 }

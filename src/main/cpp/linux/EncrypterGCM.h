@@ -18,6 +18,10 @@ namespace hnrt
 		EncrypterGCM(CipherMode cm);
 		EncrypterGCM(const EncrypterGCM& src) = delete;
 		virtual ~EncrypterGCM();
+		virtual int GetNonceLength() const;
+		virtual void SetNonceLength(int len);
+		virtual int GetTagLength() const;
+		virtual void SetTagLength(int len);
 		virtual void SetKey(void* key, void* iv);
 		virtual void SetKey(void* key, void* iv, void* aad, size_t len);
 		virtual ByteString Update(void* inputBuffer, size_t inputLength);
@@ -26,6 +30,8 @@ namespace hnrt
 
 		void SetKeyIv(void* key, void* iv);
 
+		int _nonceLength;
+		int _tagLength;
 		ByteString _aad;
 	};
 }

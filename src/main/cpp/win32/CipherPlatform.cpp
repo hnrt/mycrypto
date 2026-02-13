@@ -4,6 +4,7 @@
 #include "CipherPlatform.h"
 #include "Cipher.h"
 #include "CipherMode.h"
+#include "AES.h"
 #include "ByteString.h"
 #include "BCryptAlgHandle.h"
 #include "BCryptKeyHandle.h"
@@ -53,21 +54,8 @@ LPCWSTR CipherPlatform::GetAlgorithm()
 	case CipherMode::AES_192_GCM:
 	case CipherMode::AES_256_GCM:
 		return BCRYPT_AES_ALGORITHM;
-	case CipherMode::AES_128_CFB1:
-	case CipherMode::AES_192_CFB1:
-	case CipherMode::AES_256_CFB1:
-	case CipherMode::AES_128_CFB128:
-	case CipherMode::AES_192_CFB128:
-	case CipherMode::AES_256_CFB128:
-	case CipherMode::AES_128_OFB:
-	case CipherMode::AES_192_OFB:
-	case CipherMode::AES_256_OFB:
-	case CipherMode::AES_128_CTR:
-	case CipherMode::AES_192_CTR:
-	case CipherMode::AES_256_CTR:
-		throw std::runtime_error("Unsupported cipher mode.");
 	default:
-		throw std::runtime_error("Bad cipher mode.");
+		throw std::runtime_error("Cipher not supported.");
 	}
 }
 
@@ -96,21 +84,8 @@ LPCWSTR CipherPlatform::GetChainingMode()
 	case CipherMode::AES_192_GCM:
 	case CipherMode::AES_256_GCM:
 		return BCRYPT_CHAIN_MODE_GCM;
-	case CipherMode::AES_128_CFB1:
-	case CipherMode::AES_192_CFB1:
-	case CipherMode::AES_256_CFB1:
-	case CipherMode::AES_128_CFB128:
-	case CipherMode::AES_192_CFB128:
-	case CipherMode::AES_256_CFB128:
-	case CipherMode::AES_128_OFB:
-	case CipherMode::AES_192_OFB:
-	case CipherMode::AES_256_OFB:
-	case CipherMode::AES_128_CTR:
-	case CipherMode::AES_192_CTR:
-	case CipherMode::AES_256_CTR:
-		throw std::runtime_error("Unsupported cipher mode.");
 	default:
-		throw std::runtime_error("Bad cipher mode.");
+		throw std::runtime_error("Cipher not supported.");
 	}
 }
 
