@@ -11,5 +11,6 @@ CALL .\gcmtest.bat
 @IF ERRORLEVEL 1 (SET failed=%failed% GCM) ELSE (SET successful=%successful% GCM)
 CALL .\ccmtest.bat
 @IF ERRORLEVEL 1 (SET failed=%failed% CCM) ELSE (SET successful=%successful% CCM)
+@ECHO RESULT SUMMARY:
 @IF NOT "%successful%"=="" (@ECHO OK:%successful%)
 @IF NOT "%failed%"=="" (@ECHO FAILED:%failed%)

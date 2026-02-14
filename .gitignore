@@ -23,3 +23,7 @@ bin/
 lincli/obj/
 wincli/obj/
 wincli/wincli.vcxproj.user
+test/win32/tmp/
+test/linux/tmp/
+test/java/tmp/
+

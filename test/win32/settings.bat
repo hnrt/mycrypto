@@ -1,5 +1,5 @@
-SET configuration=Debug
-REM SET configuration=Release
+REM IF "%configuration%"=="" SET configuration=Debug
+IF "%configuration%"=="" SET configuration=Release
 
 SET command=..\..\bin\x64\%configuration%\mycrypto.exe
 
