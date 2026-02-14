@@ -63,9 +63,7 @@ void EncrypterGCM::SetKeyIv(void* key, void* iv)
 		throw std::runtime_error("Failed to initialize the cipher context.");
 	}
 
-	int defaultTagLength = EVP_CIPHER_CTX_get_tag_length(_ctx);
-
-	DEBUG("#EVP_CIPHER_CTX_get_tag_length=%d\n", defaultTagLength);
+	DEBUG("#EVP_CIPHER_CTX_get_tag_length=%d\n", EVP_CIPHER_CTX_get_tag_length(_ctx));
 
 	if (EVP_CIPHER_CTX_ctrl(_ctx, EVP_CTRL_GCM_SET_IVLEN, GetNonceLength(), NULL) != 1)
 	{

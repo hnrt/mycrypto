@@ -38,7 +38,7 @@ STDCPPFLAGS=-I $(SRCROOT) -I $(SRCROOT)linux/ -I /opt/openssl/include -DLINUX
 STDLDFLAGS=-L /opt/openssl/lib64
 STDLIBS=-lcrypto -lssl
 
-ifeq ($(CONFIGURATION), release)
+ifeq ($(CONFIGURATION), Release)
 USRCFLAGS=-O3
 USRCPPFLAGS=
 else
@@ -89,10 +89,10 @@ both:: Release Debug
 Release Debug::
 	$(MAKE) all CONFIGURATION=$@
 
-release-clean::
+Release-clean::
 	$(MAKE) clean CONFIGURATION=Release
 
-debug-clean::
+Debug-clean::
 	$(MAKE) clean CONFIGURATION=Debug
 
 ######################################################################

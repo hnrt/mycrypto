@@ -52,6 +52,7 @@ else
   failed="$failed GCM"
 fi
 
+echo "RESULT SUMMARY:"
 if [ "$successful" != "" ]; then
   echo "OK:$successful"
 fi

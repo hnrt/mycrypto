@@ -1,25 +1,27 @@
-#!/bin/bash -x
+#!/bin/bash
 
 . ./settings
 
-rm -f ./*.ecb
+if [ -d tmp ]; then rm -f tmp/*.ecb ; else mkdir tmp ; fi
 
-$command aes-256-ecb -e -i ../plaintext44.txt -o ciphertext44.ecb -p $pp
-./checkup.sh ciphertext44.ecb || exit 1
+$command aes-256-ecb -e -i ../plaintext44.txt -o tmp/ciphertext44.ecb -p $pp
+./checkup.sh tmp/ciphertext44.ecb || exit 1
 
-$command aes-256-ecb -d -i ciphertext44.ecb -o plaintext44.ecb -p $pp
-cmp ../plaintext44.txt plaintext44.ecb || exit 2
+$command aes-256-ecb -d -i tmp/ciphertext44.ecb -o tmp/plaintext44.ecb -p $pp
+cmp ../plaintext44.txt tmp/plaintext44.ecb || exit 2
 
-$command aes-256-ecb -e -i ../plaintext6570.txt -o ciphertext6570.ecb -p $pp
-./checkup.sh ciphertext6570.ecb || exit 3
+$command aes-256-ecb -e -i ../plaintext6570.txt -o tmp/ciphertext6570.ecb -p $pp
+./checkup.sh tmp/ciphertext6570.ecb || exit 3
 
-$command aes-256-ecb -d -i ciphertext6570.ecb -o plaintext6570.ecb -p $pp
-cmp ../plaintext6570.txt plaintext6570.ecb || exit 4
+$command aes-256-ecb -d -i tmp/ciphertext6570.ecb -o tmp/plaintext6570.ecb -p $pp
+cmp ../plaintext6570.txt tmp/plaintext6570.ecb || exit 4
 
-$command aes-256-ecb -e -i ../plaintext2M.jpg -o ciphertext2M.ecb -p $pp
-./checkup.sh ciphertext2M.ecb || exit 5
+$command aes-256-ecb -e -i ../plaintext2M.jpg -o tmp/ciphertext2M.ecb -p $pp
+./checkup.sh tmp/ciphertext2M.ecb || exit 5
 
-$command aes-256-ecb -d -i ciphertext2M.ecb -o plaintext2M.ecb -p $pp
-cmp ../plaintext2M.jpg plaintext2M.ecb || exit 6
+$command aes-256-ecb -d -i tmp/ciphertext2M.ecb -o tmp/plaintext2M.ecb -p $pp
+cmp ../plaintext2M.jpg tmp/plaintext2M.ecb || exit 6
+
+echo "AES-ECB LOOKS GOOD!"
 
 exit 0
