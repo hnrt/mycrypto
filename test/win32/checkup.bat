@@ -1,3 +1,4 @@
+@ECHO OFF
 SETLOCAL
 CALL .\settings.bat
 FOR %%a IN (%1) DO SET target=%%~nxa

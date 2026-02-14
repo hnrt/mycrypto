@@ -9,5 +9,6 @@ CALL .\cfb8test.bat
 @IF ERRORLEVEL 1 (SET failed=%failed% CFB8) ELSE (SET successful=%successful% CFB8)
 CALL .\gcmtest.bat
 @IF ERRORLEVEL 1 (SET failed=%failed% GCM) ELSE (SET successful=%successful% GCM)
+@ECHO RESULT SUMMARY:
 @IF NOT "%successful%"=="" (@ECHO OK:%successful%)
 @IF NOT "%failed%"=="" (@ECHO FAILED:%failed%)
