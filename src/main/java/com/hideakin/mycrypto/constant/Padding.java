@@ -3,7 +3,7 @@ package com.hideakin.mycrypto.constant;
 public enum Padding {
 
 	UNDEFINED("", ""),
-	NONE("NoPadding", "None"),
+	NONE("NoPadding", "none"),
 	PKCS5("PKCS5Padding", "PKCS5");
 
 	private String _label;

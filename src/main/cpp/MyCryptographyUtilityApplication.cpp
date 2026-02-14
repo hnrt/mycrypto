@@ -1047,24 +1047,24 @@ void MyCryptographyUtilityApplication::PrintCipherResult(const ByteString& tag, 
 	if (_aad)
 	{
 		fprintf(_console, "%10s %s\n", "KEY", String::Hex(_key).Ptr());
-		fprintf(_console, "     NONCE %s\n", String::Hex(_nonce).Ptr());
-		fprintf(_console, "       AAD %s\n", String::Hex(_aad, _aad.Length()).Ptr());
-		fprintf(_console, "       TAG %s\n", String::Hex(tag).Ptr());
+		fprintf(_console, "%10s %s\n", "NONCE", String::Hex(_nonce).Ptr());
+		fprintf(_console, "%10s %s\n", "AAD", String::Hex(_aad, _aad.Length()).Ptr());
+		fprintf(_console, "%10s %s\n", "TAG", String::Hex(tag).Ptr());
 	}
 	else if (tag)
 	{
-		fprintf(_console, "       KEY %s\n", String::Hex(_key).Ptr());
-		fprintf(_console, "     NONCE %s\n", String::Hex(_nonce).Ptr());
-		fprintf(_console, "       TAG %s\n", String::Hex(tag).Ptr());
+		fprintf(_console, "%10s %s\n", "KEY", String::Hex(_key).Ptr());
+		fprintf(_console, "%10s %s\n", "NONCE", String::Hex(_nonce).Ptr());
+		fprintf(_console, "%10s %s\n", "TAG", String::Hex(tag).Ptr());
 	}
 	else if (_iv)
 	{
-		fprintf(_console, "       KEY %s\n", String::Hex(_key).Ptr());
-		fprintf(_console, "        IV %s\n", String::Hex(_iv).Ptr());
+		fprintf(_console, "%10s %s\n", "KEY", String::Hex(_key).Ptr());
+		fprintf(_console, "%10s %s\n", "IV", String::Hex(_iv).Ptr());
 	}
 	else
 	{
-		fprintf(_console, "       KEY %s\n", String::Hex(_key).Ptr());
+		fprintf(_console, "%10s %s\n", "KEY", String::Hex(_key).Ptr());
 	}
 	fprintf(_console, "%10zu bytes in\n%10zu bytes out\n", inputStream.Count(), outputStream.Count());
 }
