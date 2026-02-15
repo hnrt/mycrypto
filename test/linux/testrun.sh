@@ -31,6 +31,20 @@ else
   failed="$failed CFB8"
 fi
 
+./ofbtest.sh
+if [ $? = 0 ]; then
+  successful="$successful OFB"
+else
+  failed="$failed OFB"
+fi
+
+./ctrtest.sh
+if [ $? = 0 ]; then
+  successful="$successful CTR"
+else
+  failed="$failed CTR"
+fi
+
 ./ccmtest.sh
 if [ $? = 0 ]; then
   successful="$successful CCM"
@@ -43,13 +57,6 @@ if [ $? = 0 ]; then
   successful="$successful GCM"
 else
   failed="$failed GCM"
-fi
-
-./ofbtest.sh
-if [ $? = 0 ]; then
-  successful="$successful OFB"
-else
-  failed="$failed OFB"
 fi
 
 echo "RESULT SUMMARY:"

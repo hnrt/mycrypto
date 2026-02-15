@@ -22,7 +22,13 @@ $command aes-256-gcm -e -i ../plaintext2M.jpg -o tmp/ciphertext2M.gcm -p $pp -n 
 $command aes-256-gcm -d -i tmp/ciphertext2M.gcm -o tmp/plaintext2M.gcm -p $pp -a $aad
 ./checkup.sh ../plaintext2M.jpg tmp/plaintext2M.gcm || exit 6
 
-$command aes-256-gcm -d -i tmp/ciphertext2M.gcm -o tmp/plaintext2M-2.gcm -p $pp -a 123$aad && exit 7
+$command aes-256-gcm -d -i tmp/ciphertext2M.gcm -o tmp/plaintext2M-2.gcm -p $pp -a 123$aad
+if [ $? = 0 ]; then
+  echo "SUCCESSFUL TERMINATION IS NOT EXPECTED!"
+  exit 7
+else
+  echo "ERROR IS EXPECTED AS AAD IS INCORRECT!"
+fi
 
 echo "AES-GCM LOOKS GOOD!"
 
