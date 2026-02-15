@@ -94,26 +94,26 @@ bool MyCryptographyUtilityApplication::SetAes256Cbc(CommandLine& args)
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes128Cfb1(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes128Cfb(CommandLine& args)
 {
-	DEBUG("#SetAes128Cfb1\n");
-	SetCipherMode(CipherMode::AES_128_CFB1);
+	DEBUG("#SetAes128Cfb\n");
+	SetCipherMode(CipherMode::AES_128_CFB);
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes192Cfb1(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes192Cfb(CommandLine& args)
 {
-	DEBUG("#SetAes192Cfb1\n");
-	SetCipherMode(CipherMode::AES_192_CFB1);
+	DEBUG("#SetAes192Cfb\n");
+	SetCipherMode(CipherMode::AES_192_CFB);
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes256Cfb1(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes256Cfb(CommandLine& args)
 {
-	DEBUG("#SetAes256Cfb1\n");
-	SetCipherMode(CipherMode::AES_256_CFB1);
+	DEBUG("#SetAes256Cfb\n");
+	SetCipherMode(CipherMode::AES_256_CFB);
 	return true;
 }
 
@@ -138,30 +138,6 @@ bool MyCryptographyUtilityApplication::SetAes256Cfb8(CommandLine& args)
 {
 	DEBUG("#SetAes256Cfb8\n");
 	SetCipherMode(CipherMode::AES_256_CFB8);
-	return true;
-}
-
-
-bool MyCryptographyUtilityApplication::SetAes128Cfb128(CommandLine& args)
-{
-	DEBUG("#SetAes128Cfb128\n");
-	SetCipherMode(CipherMode::AES_128_CFB128);
-	return true;
-}
-
-
-bool MyCryptographyUtilityApplication::SetAes192Cfb128(CommandLine& args)
-{
-	DEBUG("#SetAes192Cfb128\n");
-	SetCipherMode(CipherMode::AES_192_CFB128);
-	return true;
-}
-
-
-bool MyCryptographyUtilityApplication::SetAes256Cfb128(CommandLine& args)
-{
-	DEBUG("#SetAes256Cfb128\n");
-	SetCipherMode(CipherMode::AES_256_CFB128);
 	return true;
 }
 
@@ -320,15 +296,7 @@ void MyCryptographyUtilityApplication::SetDigestMode(DigestMode mode)
 {
 	if (_digestMode != DigestMode::DIGEST_UNSPECIFIED)
 	{
-		throw std::runtime_error("Digest mode cannot be specified twice.");
-	}
-	else if (_cipherMode != CipherMode::CIPHER_UNSPECIFIED)
-	{
-		throw std::runtime_error("Digest mode cannot be specified when cipher mode is specified.");
-	}
-	else if (_operationMode != OperationMode::OPERATION_UNSPECIFIED)
-	{
-		throw std::runtime_error("Digest mode cannot be specified when operation mode is specified.");
+		throw std::runtime_error("Digest mode can be specified once.");
 	}
 	_operationMode = OperationMode::DIGEST;
 	_digestMode = mode;
@@ -337,13 +305,9 @@ void MyCryptographyUtilityApplication::SetDigestMode(DigestMode mode)
 
 bool MyCryptographyUtilityApplication::SetEncryptionMode(CommandLine& args)
 {
-	if (_operationMode != OperationMode::OPERATION_UNSPECIFIED)
+	if (_operationMode == OperationMode::ENCRYPTION || _operationMode == OperationMode::DECRYPTION)
 	{
-		throw std::runtime_error("Operation mode cannot be specified twice.");
-	}
-	else if (_digestMode != DigestMode::DIGEST_UNSPECIFIED)
-	{
-		throw std::runtime_error("-encrypt cannot be specified when digest mode is specified.");
+		throw std::runtime_error("Operation mode can be specified once.");
 	}
 	DEBUG("#SetEncryptionMode\n");
 	_operationMode = OperationMode::ENCRYPTION;
@@ -353,13 +317,9 @@ bool MyCryptographyUtilityApplication::SetEncryptionMode(CommandLine& args)
 
 bool MyCryptographyUtilityApplication::SetDecryptionMode(CommandLine& args)
 {
-	if (_operationMode != OperationMode::OPERATION_UNSPECIFIED)
+	if (_operationMode == OperationMode::ENCRYPTION || _operationMode == OperationMode::DECRYPTION)
 	{
-		throw std::runtime_error("Operation mode cannot be specified twice.");
-	}
-	else if (_digestMode != DigestMode::DIGEST_UNSPECIFIED)
-	{
-		throw std::runtime_error("-decrypt cannot be specified when digest mode is specified.");
+		throw std::runtime_error("Operation mode can be specified once.");
 	}
 	DEBUG("#SetDecryptionMode\n");
 	_operationMode = OperationMode::DECRYPTION;
@@ -533,14 +493,18 @@ bool MyCryptographyUtilityApplication::Help(CommandLine& args)
 
 void MyCryptographyUtilityApplication::Run()
 {
+	if (_cipherMode == CipherMode::CIPHER_UNSPECIFIED && _digestMode == DigestMode::DIGEST_UNSPECIFIED)
+	{
+		throw std::runtime_error("Neither cipher nor digest is not specified. Specify either cipher or digest.");
+	}
+	else if (_cipherMode != CipherMode::CIPHER_UNSPECIFIED && _digestMode != DigestMode::DIGEST_UNSPECIFIED)
+	{
+		throw std::runtime_error("Both cipher and digest are specified. Specify either cipher or digest.");
+	}
 	switch (_operationMode)
 	{
 	case OperationMode::ENCRYPTION:
 	case OperationMode::DECRYPTION:
-		if (_cipherMode == CipherMode::CIPHER_UNSPECIFIED)
-		{
-			_cipherMode = CipherMode::AES_256_GCM;
-		}
 		_console = IsStandardOutputMode() ? stderr : stdout;
 		switch (_operationMode)
 		{
@@ -555,14 +519,10 @@ void MyCryptographyUtilityApplication::Run()
 		}
 		break;
 	case OperationMode::DIGEST:
-		if (_cipherMode != CipherMode::CIPHER_UNSPECIFIED)
-		{
-			throw std::runtime_error("Cipher mode cannot be specified for message digest computation.");
-		}
 		ComputeDigest();
 		break;
 	default:
-		throw std::runtime_error("Either operation mode or digest mode must be specified.");
+		throw std::runtime_error("Operation is not specified. Specify either -encrypt or -decrypt.");
 	}
 }
 
@@ -852,13 +812,13 @@ void MyCryptographyUtilityApplication::Decrypt()
 
 void MyCryptographyUtilityApplication::VerifyKey(const CipherPtr& cipher)
 {
-	if (!_passphrase && !_key)
+	if (!_key && !_passphrase)
 	{
-		throw std::runtime_error("Neither passphrase nor key is specified.");
+		throw std::runtime_error("Neither key nor passphrase is specified. Specify either key or passphrase.");
 	}
-	else if (_passphrase && _key)
+	else if (_key && _passphrase)
 	{
-		throw std::runtime_error("Both passphrase and key cannot be not specified.");
+		throw std::runtime_error("Both key and passphrase are specified. Specify either key or passphrase.");
 	}
 	else if (_passphrase)
 	{

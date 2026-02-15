@@ -88,6 +88,6 @@ Cipher* Cipher::CreateInstance(CipherMode cm, OperationMode om)
 			throw std::runtime_error("Bad operation mode.");
 		}
 	default:
-		throw std::runtime_error("Cipher not implemented.");
+		throw std::runtime_error("Specified cipher is not supported.");
 	}
 }

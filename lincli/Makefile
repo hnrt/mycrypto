@@ -117,19 +117,21 @@ OBJS1=$(OBJDIR)ByteString.o \
 	$(OBJDIR)linux/Decrypter.o \
 	$(OBJDIR)linux/DecrypterCBC.o \
 	$(OBJDIR)linux/DecrypterCCM.o \
-	$(OBJDIR)linux/DecrypterCFB1.o \
+	$(OBJDIR)linux/DecrypterCFB.o \
 	$(OBJDIR)linux/DecrypterCFB8.o \
-	$(OBJDIR)linux/DecrypterCFB128.o \
+	$(OBJDIR)linux/DecrypterCTR.o \
 	$(OBJDIR)linux/DecrypterECB.o \
 	$(OBJDIR)linux/DecrypterGCM.o \
+	$(OBJDIR)linux/DecrypterOFB.o \
 	$(OBJDIR)linux/Encrypter.o \
 	$(OBJDIR)linux/EncrypterCBC.o \
 	$(OBJDIR)linux/EncrypterCCM.o \
-	$(OBJDIR)linux/EncrypterCFB1.o \
+	$(OBJDIR)linux/EncrypterCFB.o \
 	$(OBJDIR)linux/EncrypterCFB8.o \
-	$(OBJDIR)linux/EncrypterCFB128.o \
+	$(OBJDIR)linux/EncrypterCTR.o \
 	$(OBJDIR)linux/EncrypterECB.o \
 	$(OBJDIR)linux/EncrypterGCM.o \
+	$(OBJDIR)linux/EncrypterOFB.o \
 	$(OBJDIR)linux/File.o
 	
 LIBS1=

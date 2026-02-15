@@ -17,11 +17,11 @@ else
   failed="$failed CBC"
 fi
 
-./cfb1test.sh
+./cfbtest.sh
 if [ $? = 0 ]; then
-  successful="$successful CFB1"
+  successful="$successful CFB"
 else
-  failed="$failed CFB1"
+  failed="$failed CFB"
 fi
 
 ./cfb8test.sh
@@ -29,13 +29,6 @@ if [ $? = 0 ]; then
   successful="$successful CFB8"
 else
   failed="$failed CFB8"
-fi
-
-./cfb128test.sh
-if [ $? = 0 ]; then
-  successful="$successful CFB128"
-else
-  failed="$failed CFB128"
 fi
 
 ./ccmtest.sh
@@ -50,6 +43,13 @@ if [ $? = 0 ]; then
   successful="$successful GCM"
 else
   failed="$failed GCM"
+fi
+
+./ofbtest.sh
+if [ $? = 0 ]; then
+  successful="$successful OFB"
+else
+  failed="$failed OFB"
 fi
 
 echo "RESULT SUMMARY:"

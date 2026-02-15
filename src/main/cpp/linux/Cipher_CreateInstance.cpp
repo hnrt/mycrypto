@@ -7,19 +7,21 @@
 #include "Encrypter.h"
 #include "EncrypterCBC.h"
 #include "EncrypterCCM.h"
-#include "EncrypterCFB1.h"
-#include "EncrypterCFB128.h"
+#include "EncrypterCFB.h"
 #include "EncrypterCFB8.h"
+#include "EncrypterCTR.h"
 #include "EncrypterECB.h"
 #include "EncrypterGCM.h"
+#include "EncrypterOFB.h"
 #include "Decrypter.h"
 #include "DecrypterCBC.h"
 #include "DecrypterCCM.h"
-#include "DecrypterCFB1.h"
-#include "DecrypterCFB128.h"
+#include "DecrypterCFB.h"
 #include "DecrypterCFB8.h"
+#include "DecrypterCTR.h"
 #include "DecrypterECB.h"
 #include "DecrypterGCM.h"
+#include "DecrypterOFB.h"
 #include "Debug.h"
 #include <stdexcept>
 
@@ -55,15 +57,15 @@ Cipher* Cipher::CreateInstance(CipherMode cm, OperationMode om)
 		default:
 			throw std::runtime_error("Bad operation mode.");
 		}
-	case CipherMode::AES_128_CFB1:
-	case CipherMode::AES_192_CFB1:
-	case CipherMode::AES_256_CFB1:
+	case CipherMode::AES_128_CFB:
+	case CipherMode::AES_192_CFB:
+	case CipherMode::AES_256_CFB:
 		switch (om)
 		{
 		case OperationMode::ENCRYPTION:
-			return new EncrypterCFB1(cm);
+			return new EncrypterCFB(cm);
 		case OperationMode::DECRYPTION:
-			return new DecrypterCFB1(cm);
+			return new DecrypterCFB(cm);
 		default:
 			throw std::runtime_error("Bad operation mode.");
 		}
@@ -79,15 +81,27 @@ Cipher* Cipher::CreateInstance(CipherMode cm, OperationMode om)
 		default:
 			throw std::runtime_error("Bad operation mode.");
 		}
-	case CipherMode::AES_128_CFB128:
-	case CipherMode::AES_192_CFB128:
-	case CipherMode::AES_256_CFB128:
+	case CipherMode::AES_128_OFB:
+	case CipherMode::AES_192_OFB:
+	case CipherMode::AES_256_OFB:
 		switch (om)
 		{
 		case OperationMode::ENCRYPTION:
-			return new EncrypterCFB128(cm);
+			return new EncrypterOFB(cm);
 		case OperationMode::DECRYPTION:
-			return new DecrypterCFB128(cm);
+			return new DecrypterOFB(cm);
+		default:
+			throw std::runtime_error("Bad operation mode.");
+		}
+	case CipherMode::AES_128_CTR:
+	case CipherMode::AES_192_CTR:
+	case CipherMode::AES_256_CTR:
+		switch (om)
+		{
+		case OperationMode::ENCRYPTION:
+			return new EncrypterCTR(cm);
+		case OperationMode::DECRYPTION:
+			return new DecrypterCTR(cm);
 		default:
 			throw std::runtime_error("Bad operation mode.");
 		}

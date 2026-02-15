@@ -54,24 +54,18 @@ const EVP_CIPHER* CipherPlatform::GetAlgorithm()
 		return EVP_aes_192_cbc();
 	case CipherMode::AES_256_CBC:
 		return EVP_aes_256_cbc();
-	case CipherMode::AES_128_CFB1:
-		return EVP_aes_128_cfb1();
-	case CipherMode::AES_192_CFB1:
-		return EVP_aes_192_cfb1();
-	case CipherMode::AES_256_CFB1:
-		return EVP_aes_256_cfb1();
+	case CipherMode::AES_128_CFB:
+		return EVP_aes_128_cfb128();
+	case CipherMode::AES_192_CFB:
+		return EVP_aes_192_cfb128();
+	case CipherMode::AES_256_CFB:
+		return EVP_aes_256_cfb128();
 	case CipherMode::AES_128_CFB8:
 		return EVP_aes_128_cfb8();
 	case CipherMode::AES_192_CFB8:
 		return EVP_aes_192_cfb8();
 	case CipherMode::AES_256_CFB8:
 		return EVP_aes_256_cfb8();
-	case CipherMode::AES_128_CFB128:
-		return EVP_aes_128_cfb128();
-	case CipherMode::AES_192_CFB128:
-		return EVP_aes_192_cfb128();
-	case CipherMode::AES_256_CFB128:
-		return EVP_aes_256_cfb128();
 	case CipherMode::AES_128_OFB:
 		return EVP_aes_128_ofb();
 	case CipherMode::AES_192_OFB:
