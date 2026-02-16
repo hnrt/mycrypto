@@ -1,7 +1,6 @@
 @ECHO OFF
-REM IF "%configuration%"=="" SET configuration=Debug
-IF "%configuration%"=="" SET configuration=Release
-SET command=..\..\bin\x64\%configuration%\mycrypto.exe
+SET command=..\..\bin\x64\Release\mycrypto.exe
+SET checkup=CALL ..\checkup.bat
 SET pp=ouch
 SET iv=1075187BE7ADAEA7FB232A57ED173A17
 SET nonce12=9A39E08D4AA7752016E7094B

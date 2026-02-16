@@ -1,15 +1,15 @@
 @SETLOCAL
 @SET successful=
 @SET failed=
-CALL .\ecbtest.bat
+CALL ..\ecbtest.bat
 @IF ERRORLEVEL 1 (SET failed=%failed% ECB) ELSE (SET successful=%successful% ECB)
-CALL .\cbctest.bat
+CALL ..\cbctest.bat
 @IF ERRORLEVEL 1 (SET failed=%failed% CBC) ELSE (SET successful=%successful% CBC)
-CALL .\cfb8test.bat
+CALL ..\cfb8test.bat
 @IF ERRORLEVEL 1 (SET failed=%failed% CFB8) ELSE (SET successful=%successful% CFB8)
 CALL .\ccmtest.bat
 @IF ERRORLEVEL 1 (SET failed=%failed% CCM) ELSE (SET successful=%successful% CCM)
-CALL .\gcmtest.bat
+CALL ..\gcmtest.bat
 @IF ERRORLEVEL 1 (SET failed=%failed% GCM) ELSE (SET successful=%successful% GCM)
 @ECHO RESULT SUMMARY:
 @IF NOT "%successful%"=="" (@ECHO OK:%successful%)
