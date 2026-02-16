@@ -56,6 +56,7 @@ public class MyCryptographyUtilityApplication {
 	private byte[] _iv;
 	private byte[] _nonce;
 	private byte[] _aad; // Additional Authenticated Data
+	private byte[] _tag;
 	private String _inFileName;
 	private String _outFileName;
 	private Path _outPath;
@@ -215,6 +216,9 @@ public class MyCryptographyUtilityApplication {
 			while ((n = in.read(buf)) >= 0) {
 				if (n > 0) {
 					inBytes += n;
+					if (_cipherMode.useNonce() && _operationMode == Cipher.DECRYPT_MODE) {
+						storeLastBytes(buf, n, _tag);
+					}
 					byte[] result = cipher.update(buf, 0, n);
 					if (result != null) {
 						out.write(result);
@@ -222,14 +226,20 @@ public class MyCryptographyUtilityApplication {
 					}
 				}
 			}
-			_info.printf("%16s in\n", TextHelpers.numberOfBytes(inBytes));
 			closeInput(in);
 			byte[] result = cipher.doFinal();
 			if (result != null) {
 				out.write(result);
 				outBytes += result.length;
+				if (_cipherMode.useNonce()) {
+					if (_operationMode == Cipher.ENCRYPT_MODE) {
+						storeLastBytes(result, result.length, _tag);
+					}
+					_info.printf("%10s %s\n", "TAG", HexString.toString(_tag));
+				}
 			}
 			out.flush();
+			_info.printf("%16s in\n", TextHelpers.numberOfBytes(inBytes));
 			_info.printf("%16s out\n", TextHelpers.numberOfBytes(outBytes));
 			commitOutput(out);
 		} finally {
@@ -404,6 +414,17 @@ public class MyCryptographyUtilityApplication {
 		}
 	}
 
+	private static void storeLastBytes(byte[] src, int n, byte[] dst) {
+		if (n >= dst.length) {
+			System.arraycopy(src, n - dst.length, dst, 0, dst.length);
+		} else {
+			int m = dst.length - n;
+			byte[] prv = Arrays.copyOfRange(dst, n, m);
+			System.arraycopy(prv, 0, dst, 0, m);
+			System.arraycopy(src, 0, dst, m, n);
+		}
+	}
+
 	private Cipher getCipher() throws Exception {
 		return _cipherSupplier.get(_cipherMode).get();
 	}
@@ -445,11 +466,11 @@ public class MyCryptographyUtilityApplication {
 			cipher.init(_operationMode, keySpec, gcmParameterSpec);
 			_info.printf("%10s %s\n", "KEY", HexString.toString(_key));
 			_info.printf("%10s %s\n", "NONCE", HexString.toString(_nonce));
-			_info.printf("%10s %d\n", "TAG", _tagLength);
 			if (_aad != null) {
 				cipher.updateAAD(_aad);
 				_info.printf("%10s %s\n", "AAD", HexString.toString(_aad));
 			}
+			_tag = new byte[_tagLength];
 			return cipher;
 		} catch (Exception e) {
 			throw new RuntimeException(e.getMessage());
