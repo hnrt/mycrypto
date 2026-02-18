@@ -242,11 +242,11 @@ void MyCryptographyUtilityApplication::SetCipherMode(CipherMode mode)
 {
 	if (_cipherMode != CipherMode::CIPHER_UNSPECIFIED)
 	{
-		throw std::runtime_error("Cipher mode cannot be specified twice.");
+		throw std::runtime_error("Cipher is specified more than once.");
 	}
 	else if (_digestMode != DigestMode::DIGEST_UNSPECIFIED)
 	{
-		throw std::runtime_error("Cipher mode cannot be specified when digest mode is specified.");
+		throw std::runtime_error("Both cipher and digest are specified at the same time. Specify one of them at a time.");
 	}
 	_cipherMode = mode;
 }
@@ -294,9 +294,13 @@ bool MyCryptographyUtilityApplication::SetSHA512(CommandLine& args)
 
 void MyCryptographyUtilityApplication::SetDigestMode(DigestMode mode)
 {
-	if (_digestMode != DigestMode::DIGEST_UNSPECIFIED)
+	if (_cipherMode != CipherMode::CIPHER_UNSPECIFIED)
 	{
-		throw std::runtime_error("Digest mode can be specified once.");
+		throw std::runtime_error("Both cipher and digest are specified at the same time. Specify one of them at a time.");
+	}
+	else if (_digestMode != DigestMode::DIGEST_UNSPECIFIED)
+	{
+		throw std::runtime_error("Digest is specified more than once.");
 	}
 	_operationMode = OperationMode::DIGEST;
 	_digestMode = mode;
@@ -493,36 +497,19 @@ bool MyCryptographyUtilityApplication::Help(CommandLine& args)
 
 void MyCryptographyUtilityApplication::Run()
 {
-	if (_cipherMode == CipherMode::CIPHER_UNSPECIFIED && _digestMode == DigestMode::DIGEST_UNSPECIFIED)
-	{
-		throw std::runtime_error("Neither cipher nor digest is not specified. Specify either cipher or digest.");
-	}
-	else if (_cipherMode != CipherMode::CIPHER_UNSPECIFIED && _digestMode != DigestMode::DIGEST_UNSPECIFIED)
-	{
-		throw std::runtime_error("Both cipher and digest are specified. Specify either cipher or digest.");
-	}
 	switch (_operationMode)
 	{
 	case OperationMode::ENCRYPTION:
+		Encrypt();
+		break;
 	case OperationMode::DECRYPTION:
-		_console = IsStandardOutputMode() ? stderr : stdout;
-		switch (_operationMode)
-		{
-		case OperationMode::ENCRYPTION:
-			Encrypt();
-			break;
-		case OperationMode::DECRYPTION:
-			Decrypt();
-			break;
-		default:
-			throw std::runtime_error("Bad operation mode.");
-		}
+		Decrypt();
 		break;
 	case OperationMode::DIGEST:
 		ComputeDigest();
 		break;
 	default:
-		throw std::runtime_error("Operation is not specified. Specify either -encrypt or -decrypt.");
+		throw std::runtime_error("Neither cipher nor digest is specified. Specify one of them at least.");
 	}
 }
 
@@ -551,6 +538,10 @@ bool MyCryptographyUtilityApplication::IsStandardOutputMode() const
 
 void MyCryptographyUtilityApplication::Encrypt()
 {
+	if (_cipherMode == CipherMode::CIPHER_UNSPECIFIED)
+	{
+		throw std::runtime_error("Cipher is not specified.");
+	}
 	if (!_inputPath)
 	{
 		throw std::runtime_error("Input file path is not specified.");
@@ -559,6 +550,8 @@ void MyCryptographyUtilityApplication::Encrypt()
 	{
 		throw std::runtime_error("Output file path is not specified.");
 	}
+
+	_console = IsStandardOutputMode() ? stderr : stdout;
 
 	CipherPtr cipher;
 	cipher.Initialize(_cipherMode, OperationMode::ENCRYPTION);
@@ -666,6 +659,10 @@ void MyCryptographyUtilityApplication::Encrypt()
 
 void MyCryptographyUtilityApplication::Decrypt()
 {
+	if (_cipherMode == CipherMode::CIPHER_UNSPECIFIED)
+	{
+		throw std::runtime_error("Cipher is not specified.");
+	}
 	if (!_inputPath)
 	{
 		throw std::runtime_error("Input file path is not specified.");
@@ -674,6 +671,8 @@ void MyCryptographyUtilityApplication::Decrypt()
 	{
 		throw std::runtime_error("Output file path is not specified.");
 	}
+
+	_console = IsStandardOutputMode() ? stderr : stdout;
 
 	CipherPtr cipher;
 	cipher.Initialize(_cipherMode, OperationMode::DECRYPTION);
@@ -814,11 +813,11 @@ void MyCryptographyUtilityApplication::VerifyKey(const CipherPtr& cipher)
 {
 	if (!_key && !_passphrase)
 	{
-		throw std::runtime_error("Neither key nor passphrase is specified. Specify either key or passphrase.");
+		throw std::runtime_error("Neither key nor passphrase is specified. Specify one or the other.");
 	}
 	else if (_key && _passphrase)
 	{
-		throw std::runtime_error("Both key and passphrase are specified. Specify either key or passphrase.");
+		throw std::runtime_error("Both key and passphrase are specified at the same time. Specify one or the other.");
 	}
 	else if (_passphrase)
 	{
@@ -833,26 +832,45 @@ void MyCryptographyUtilityApplication::VerifyKey(const CipherPtr& cipher)
 
 void MyCryptographyUtilityApplication::VerifyIV(CipherPtr& cipher, bool generateIfNotSpecified)
 {
+	if (cipher->GetIvLength())
+	{
+		if (_iv)
+		{
+			if (static_cast<size_t>(cipher->GetIvLength()) != _iv.Length())
+			{
+				throw std::runtime_error(String::Format("IV is not valid in length. Expected=%d Actual=%zu", cipher->GetIvLength(), _iv.Length()));
+			}
+		}
+		else if (generateIfNotSpecified)
+		{
+			ComputeIV(cipher);
+		}
+	}
+	else if (_iv)
+	{
+		throw std::runtime_error("IV cannot be specified for the target cipher.");
+	}
+}
+
+
+void MyCryptographyUtilityApplication::VerifyNonce(CipherPtr& cipher, bool generateIfNotSpecified)
+{
 	if (cipher->GetNonceLength())
 	{
 		if (_nonceLength)
 		{
 			cipher->SetNonceLength(_nonceLength);
 		}
-		if (!_nonce)
+		if (_nonce)
 		{
-			if (generateIfNotSpecified)
+			if (static_cast<size_t>(cipher->GetNonceLength()) != _nonce.Length())
 			{
-				ComputeNonce(cipher);
+				throw std::runtime_error(String::Format("Nonce is not valid in length. Expected=%d Actual=%zu", cipher->GetNonceLength(), _nonce.Length()));
 			}
 		}
-		else if (static_cast<size_t>(cipher->GetNonceLength()) != _nonce.Length())
+		else if (generateIfNotSpecified)
 		{
-			throw std::runtime_error(String::Format("Nonce is not valid in length. Expected=%d Actual=%zu", cipher->GetNonceLength(), _nonce.Length()));
-		}
-		if (_iv)
-		{
-			throw std::runtime_error("IV cannot be specified for the target cipher.");
+			ComputeNonce(cipher);
 		}
 		if (_tagLength)
 		{
@@ -874,24 +892,6 @@ void MyCryptographyUtilityApplication::VerifyIV(CipherPtr& cipher, bool generate
 	else if (_tagLength)
 	{
 		throw std::runtime_error("Tag length cannot be specified for the target cipher.");
-	}
-	else if (cipher->GetIvLength())
-	{
-		if (!_iv)
-		{
-			if (generateIfNotSpecified)
-			{
-				ComputeIV(cipher);
-			}
-		}
-		else if (static_cast<size_t>(cipher->GetIvLength()) != _iv.Length())
-		{
-			throw std::runtime_error(String::Format("IV is not valid in length. Expected=%d Actual=%zu", cipher->GetIvLength(), _iv.Length()));
-		}
-	}
-	else if (_iv)
-	{
-		throw std::runtime_error("IV cannot be specified for the target cipher.");
 	}
 }
 

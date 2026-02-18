@@ -44,6 +44,8 @@ public class MyCryptographyUtilityApplication {
 	private static final int FLAG_IN_TO_CLOSE = 1 << 1;
 	private static final int FLAG_OUT_TO_CLOSE = 1 << 2;
 
+	private static final int DIGEST_MODE = 999;
+
 	private Algorithm _algorithm = Algorithm.UNDEFINED;
 	private CipherMode _cipherMode = CipherMode.UNDEFINED;
 	private Padding _padding = Padding.UNDEFINED;
@@ -61,9 +63,11 @@ public class MyCryptographyUtilityApplication {
 	private String _outFileName;
 	private Path _outPath;
 	private Path _tmpPath;
-	private int _operationMode = 0; // Cipher.ENCRYPT_MODE or Cipher.DECRYPT_MODE
+	private int _operationMode = 0; // Cipher.ENCRYPT_MODE, Cipher.DECRYPT_MODE or DIGEST_MODE
 	private int _flags = 0;
 	private PrintStream _info;
+	private long inBytes = 0L;
+	private long outBytes = 0L;
 	
 	private final Map<CipherMode, Supplier<Cipher>> _cipherSupplier = new HashMap<CipherMode, Supplier<Cipher>>() {
 		{
@@ -83,7 +87,11 @@ public class MyCryptographyUtilityApplication {
 
 	private void setTransformation(Algorithm algorithm, CipherMode mode, Padding padding, int keyLength) {
 		if (_algorithm != Algorithm.UNDEFINED) {
-			throw new RuntimeException("Algorithm is specified more than once.");
+			if (_algorithm == Algorithm.AES) {
+				throw new RuntimeException("Cipher is specified more than once.");
+			} else {
+				throw new RuntimeException("Both cipher and digest are specified at the same time. Specify one of them at a time.");
+			}
 		}
 		_algorithm = algorithm;
 		_cipherMode = mode;
@@ -172,51 +180,114 @@ public class MyCryptographyUtilityApplication {
 		return (_flags & value) == value;
 	}
 
+	private void setDigestMode(Algorithm algorithm) {
+		if (_algorithm != Algorithm.UNDEFINED) {
+			if (_algorithm == Algorithm.AES) {
+				throw new RuntimeException("Both cipher and digest are specified at the same time. Specify one of them at a time.");
+			} else {
+				throw new RuntimeException("Digest is specified more than once.");
+			}
+		}
+		_operationMode = DIGEST_MODE;
+		_algorithm = algorithm;
+	}
+
 	public void run() throws Exception {
-		verifyParameters();
+		switch (_operationMode) {
+		case Cipher.ENCRYPT_MODE:
+			runInEncryptMode();
+			break;
+		case Cipher.DECRYPT_MODE:
+			runInDecryptMode();
+			break;
+		case DIGEST_MODE:
+			runInDigestMode();
+			break;
+		default:
+			throw new RuntimeException("Neither cipher nor digest is specified. Specify one of them at least.");
+		}
+	}
+
+	public void runInEncryptMode() throws Exception {
+		verifyParameters(true);
 		InputStream in = null;
 		OutputStream out = null;
 		try {
 			in = openInput();
 			out = openOutput();
-			long inBytes = 0L;
-			long outBytes = 0L;
 			byte[] buf = new byte[8192];
 			int n;
-			if (_operationMode == Cipher.ENCRYPT_MODE) {
-				if (_nonce != null) {
-					out.write(_nonce);
-					outBytes += _nonce.length;
-				} else if (_iv != null) {
-					out.write(_iv);
-					outBytes += _iv.length;
+			if (_nonce != null) {
+				out.write(_nonce);
+				outBytes += _nonce.length;
+			} else if (_iv != null) {
+				out.write(_iv);
+				outBytes += _iv.length;
+			}
+			Cipher cipher = getCipher();
+			while ((n = in.read(buf)) >= 0) {
+				if (n > 0) {
+					inBytes += n;
+					byte[] result = cipher.update(buf, 0, n);
+					if (result != null) {
+						out.write(result);
+						outBytes += result.length;
+					}
 				}
-			} else if (_operationMode == Cipher.DECRYPT_MODE) {
-				if (_cipherMode.useNonce()) {
-					if (_nonce == null) {
-						_nonce = new byte[_nonceLength];
-						n = in.read(_nonce);
-						if (n != _nonceLength) {
-							throw new RuntimeException("Failed to read nonce.");
-						}
-						inBytes += n;
+			}
+			closeInput(in);
+			byte[] result = cipher.doFinal();
+			if (result != null) {
+				out.write(result);
+				outBytes += result.length;
+				if (_tag != null) {
+					storeLastBytes(result, result.length, _tag);
+					_info.printf("%10s %s\n", "TAG", HexString.toString(_tag));
+				}
+			}
+			out.flush();
+			_info.printf("%16s in\n", TextHelpers.numberOfBytes(inBytes));
+			_info.printf("%16s out\n", TextHelpers.numberOfBytes(outBytes));
+			commitOutput(out);
+		} finally {
+			closeInput(in);
+			closeOutput(out);
+		}
+	}
+
+	public void runInDecryptMode() throws Exception {
+		verifyParameters(false);
+		InputStream in = null;
+		OutputStream out = null;
+		try {
+			in = openInput();
+			out = openOutput();
+			byte[] buf = new byte[8192];
+			int n;
+			if (_cipherMode.useNonce()) {
+				if (_nonce == null) {
+					_nonce = new byte[_nonceLength];
+					n = in.read(_nonce);
+					if (n != _nonceLength) {
+						throw new RuntimeException("Failed to read nonce.");
 					}
-				} else if (_cipherMode.useIV()) {
-					if (_iv == null) {
-						_iv = new byte[_ivLength];
-						n = in.read(_iv);
-						if (n != _ivLength) {
-							throw new RuntimeException("Failed to read IV.");
-						}
-						inBytes += n;
+					inBytes += n;
+				}
+			} else if (_cipherMode.useIV()) {
+				if (_iv == null) {
+					_iv = new byte[_ivLength];
+					n = in.read(_iv);
+					if (n != _ivLength) {
+						throw new RuntimeException("Failed to read IV.");
 					}
+					inBytes += n;
 				}
 			}
 			Cipher cipher = getCipher();
 			while ((n = in.read(buf)) >= 0) {
 				if (n > 0) {
 					inBytes += n;
-					if (_cipherMode.useNonce() && _operationMode == Cipher.DECRYPT_MODE) {
+					if (_tag != null) {
 						storeLastBytes(buf, n, _tag);
 					}
 					byte[] result = cipher.update(buf, 0, n);
@@ -231,10 +302,7 @@ public class MyCryptographyUtilityApplication {
 			if (result != null) {
 				out.write(result);
 				outBytes += result.length;
-				if (_cipherMode.useNonce()) {
-					if (_operationMode == Cipher.ENCRYPT_MODE) {
-						storeLastBytes(result, result.length, _tag);
-					}
+				if (_tag != null) {
 					_info.printf("%10s %s\n", "TAG", HexString.toString(_tag));
 				}
 			}
@@ -248,12 +316,16 @@ public class MyCryptographyUtilityApplication {
 		}
 	}
 
-	private void verifyParameters() throws Exception {
+	private void verifyParameters(boolean generateIfNotSpecified) throws Exception {
+		verifyCommon();
+		verifyKey();
+		verifyIV(generateIfNotSpecified);
+		verifyNonce(generateIfNotSpecified);
+	}
+
+	private void verifyCommon() throws Exception {
 		if (_algorithm == Algorithm.UNDEFINED) {
 			throw new RuntimeException("Cipher is not specified.");
-		}
-		if (_operationMode == 0) {
-			throw new RuntimeException("Operation is not specified. Specify either -encrypt or -decrypt.");
 		}
 		if (_inFileName == null) {
 			throw new RuntimeException("Input file path is not specified.");
@@ -261,71 +333,50 @@ public class MyCryptographyUtilityApplication {
 		if (_outFileName == null) {
 			throw new RuntimeException("Output file path is not specified.");
 		}
-		verifyKey();
-		verifyIv();
-		verifyNonce();
-		verifyAAD();
 	}
 
 	private void verifyKey() throws Exception {
 		if (!hasKey() && !hasPassphrase()) {
-			throw new RuntimeException("Neither key nor passphrase is specified. Specify either key or passphrase.");
+			throw new RuntimeException("Neither key nor passphrase is specified. Specify one or the other.");
 		} else if (hasKey() && hasPassphrase()) {
-			throw new RuntimeException("Both key and passphrase are specified. Specify either key or passphrase.");
-		}
-		if (hasPassphrase()) {
+			throw new RuntimeException("Both key and passphrase are specified at the same time. Specify one or the other.");
+		} else if (hasPassphrase()) {
 			_key = adjustLength(generate32Bytes(_passphrase), _keyLength);
-		} else if (hasKey()) {
-			if (_key.length != _keyLength) {
-				System.err.printf("WARNING: Key length is incorrect. expected=%d actual=%d It is to be corrected.\n", _keyLength, _key.length);
-				_key = adjustLength(_key, _keyLength);
-			}
+		} else if (_key.length != _keyLength) {
+			throw new RuntimeException(String.format("Key is not valid in length. Expected=%d Actual=%d", _keyLength, _key.length));
 		}
 	}
 
-	private void verifyIv() throws Exception {
+	private void verifyIV(boolean generateIfNotSpecified) throws Exception {
 		if (_ivLength > 0) {
-			if (_operationMode == Cipher.ENCRYPT_MODE) {
-				if (hasIv()) {
-					if (_ivLength != _iv.length) {
-						System.err.printf("WARNING: IV length is incorrect. expected=%d actual=%d It is to be corrected.\n", _ivLength, _iv.length);
-						_iv = adjustLength(_iv, _ivLength);
-					}
-				} else {
-					_iv = adjustLength(generate32Bytes(null), _ivLength);
+			if (hasIv()) {
+				if (_ivLength != _iv.length) {
+					throw new RuntimeException(String.format("IV is not valid in length. Expected=%d Actual=%d", _ivLength, _iv.length));
 				}
-			} else if (_operationMode == Cipher.DECRYPT_MODE) {
-				if (hasIv()) {
-					if (_ivLength != _iv.length) {
-						throw new RuntimeException(String.format("IV length is incorrect. expected=%d actual=%d", _ivLength, _iv.length));
-					}
-				}
+			} else if (generateIfNotSpecified) {
+				_iv = adjustLength(generate32Bytes(null), _ivLength);
 			}
 		} else if (hasIv()) {
-			throw new RuntimeException("Initial vector is specified. It is not required.");
+			throw new RuntimeException("Initial vector cannot be specified for the target cipher.");
 		}
 	}
 
-	private void verifyNonce() throws Exception {
+	private void verifyNonce(boolean generateIfNotSpecified) throws Exception {
 		if (_nonceLength > 0) {
-			if (_operationMode == Cipher.ENCRYPT_MODE) {
-				if (hasNonce()) {
-					if (_nonceLength != _nonce.length) {
-						System.err.printf("WARNING: Nonce length is incorrect. expected=%d actual=%d It is to be corrected.\n", _nonceLength, _nonce.length);
-						_nonce = adjustLength(_nonce, _nonceLength);						
-					}
-				} else {
-					_nonce = adjustLength(generate32Bytes(null), _nonceLength);
+			if (hasNonce()) {
+				if (_nonceLength != _nonce.length) {
+					throw new RuntimeException(String.format("Nonce is not valid in length. Expected=%d Actual=%d", _nonceLength, _nonce.length));
 				}
-			} else if (_operationMode == Cipher.DECRYPT_MODE) {
-				if (hasNonce()) {
-					if (_nonceLength != _nonce.length) {
-						throw new RuntimeException(String.format("Nonce length is incorrect. expected=%d actual=%d", _nonceLength, _nonce.length));
-					}
-				}
+			} else if (generateIfNotSpecified) {
+				_nonce = adjustLength(generate32Bytes(null), _nonceLength);
 			}
+			
 		} else if (hasNonce()) {
-			throw new RuntimeException("Nonce is specified. It is not required.");
+			throw new RuntimeException("Nonce cannot be specified for the target cipher.");
+		} else if (hasAAD()) {
+			throw new RuntimeException("Additional authenticated data cannot be specified for the target cipher.");
+		} else if (hasTagLength()) {
+			throw new RuntimeException("Tag length cannot be specified for the target cipher.");
 		}
 	}
 
@@ -334,14 +385,6 @@ public class MyCryptographyUtilityApplication {
 			return Arrays.copyOf(value, length);
 		} else {
 			return value;
-		}
-	}
-
-	private void verifyAAD() {
-		if (_cipherMode == CipherMode.GCM) {
-			// OK
-		} else if (hasAAD()) {
-			throw new RuntimeException("Additional authenticated data is specified. It cannot be specified.");
 		}
 	}
 
@@ -481,17 +524,61 @@ public class MyCryptographyUtilityApplication {
 		return String.format("%s/%s/%s", _algorithm.label(), _cipherMode.label(), _padding.label());
 	}
 
-	private static final String SHA_256 = "SHA-256";
-
 	private static byte[] generate32Bytes(String value) {
 		try {
 			if (value == null) {
 				value = String.format("%d", System.nanoTime());
 			}
-			MessageDigest md = MessageDigest.getInstance(SHA_256);
+			MessageDigest md = MessageDigest.getInstance(Algorithm.SHA256.label());
 			return md.digest(value.getBytes());
 		} catch (Exception e) {
 			throw new RuntimeException(e.getMessage());
+		}
+	}
+
+	public void runInDigestMode() throws Exception {
+		if (hasKey()) {
+			throw new RuntimeException("Key cannot be specified for digest.");
+		}
+		if (hasPassphrase()) {
+			throw new RuntimeException("Passphrase cannot be specified for digest.");
+		}
+		if (hasIv()) {
+			throw new RuntimeException("IV cannot be specified for digest.");
+		}
+		if (hasNonce()) {
+			throw new RuntimeException("Nonce cannot be specified for digest.");
+		}
+		if (hasAAD()) {
+			throw new RuntimeException("AAD cannot be specified for digest.");
+		}
+		if (hasTagLength()) {
+			throw new RuntimeException("Tag length cannot be specified for digest.");
+		}
+		if (_inFileName == null) {
+			throw new RuntimeException("Input file path is not specified.");
+		}
+		if (_outFileName == null) {
+			_outFileName = "-";
+		}
+		InputStream in = null;
+		OutputStream out = null;
+		try {
+			in = openInput();
+			out = openOutput();
+			byte[] buffer = new byte[8192];
+			int n;
+			MessageDigest md = MessageDigest.getInstance(_algorithm.label());
+			while ((n = in.read(buffer)) >= 0) {
+				md.update(buffer, 0, n);
+			}
+			byte[] result = md.digest();
+			out.write(String.format("%s%s", HexString.toString(result).toLowerCase(), System.lineSeparator()).getBytes());
+			out.flush();
+			commitOutput(out);
+		} finally {
+			closeInput(in);
+			closeOutput(out);
 		}
 	}
 
@@ -591,6 +678,26 @@ public class MyCryptographyUtilityApplication {
 				})
 				.add("aes-256-gcm", transformationDescription(Algorithm.AES, CipherMode.GCM, Padding.NONE, 256), (p) -> {
 					setTransformation(Algorithm.AES, CipherMode.GCM, Padding.NONE, AES_256_KEY_LENGTH);
+					return true;
+				})
+				.add("md5", "digest: MD5 (16 bytes long)", (p) -> {
+					setDigestMode(Algorithm.MD5);
+					return true;
+				})
+				.add("sha1", "digest: SHA1 (20 bytes long)", (p) -> {
+					setDigestMode(Algorithm.SHA1);
+					return true;
+				})
+				.add("sha256", "digest: SHA256 (32 bytes long)", (p) -> {
+					setDigestMode(Algorithm.SHA256);
+					return true;
+				})
+				.add("sha384", "digest: SHA384 (48 bytes long)", (p) -> {
+					setDigestMode(Algorithm.SHA384);
+					return true;
+				})
+				.add("sha512", "digest: SHA512 (64 bytes long)", (p) -> {
+					setDigestMode(Algorithm.SHA512);
 					return true;
 				})
 				.add("-encrypt", "sets operation mode to encryption", (p) -> {

@@ -76,6 +76,7 @@ namespace hnrt
 		void Decrypt();
 		void VerifyKey(const CipherPtr& cipher);
 		void VerifyIV(CipherPtr& cipher, bool generateIfNotSpecified = false);
+		void VerifyNonce(CipherPtr& cipher, bool generateIfNotSpecified = false);
 		void ReadOnceFromStandardInput(File& inputStream);
 		void ComputeKey(const CipherPtr& cipher);
 		void ComputeIV(const CipherPtr& cipher);

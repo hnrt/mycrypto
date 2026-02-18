@@ -976,4 +976,104 @@ public class MyCryptographyUtilityTest {
 		assertEquals(DATA4, actual);
 	}
 
+	@Test
+	public void test_md5() throws Exception {
+		Path inPath = Paths.get(TMPDIR, "test_md5.in");
+		Path outPath = Paths.get(TMPDIR, "test_md5.out");
+		byte[] inData = DATA3.getBytes(StandardCharsets.UTF_8);
+		Files.write(inPath, inData);
+		MyCryptographyUtilityApplication app = new MyCryptographyUtilityApplication();
+		app.commandLineParameters().process(new String[] {
+				"md5",
+				"-i", inPath.toString(),
+				"-o", outPath.toString()
+		});
+		app.run();
+		byte[] result = Files.readAllBytes(outPath);
+		String actual = new String(result, StandardCharsets.UTF_8);
+		System.out.printf("#MD5\n");
+		System.out.printf("#%s\n", actual.trim());
+		assertEquals("5e62fa781f53a60c5d8720d1f0d77a51" + System.lineSeparator(), actual);
+	}
+
+	@Test
+	public void test_sha1() throws Exception {
+		Path inPath = Paths.get(TMPDIR, "test_sha1.in");
+		Path outPath = Paths.get(TMPDIR, "test_sha1.out");
+		byte[] inData = DATA3.getBytes(StandardCharsets.UTF_8);
+		Files.write(inPath, inData);
+		MyCryptographyUtilityApplication app = new MyCryptographyUtilityApplication();
+		app.commandLineParameters().process(new String[] {
+				"sha1",
+				"-i", inPath.toString(),
+				"-o", outPath.toString()
+		});
+		app.run();
+		byte[] result = Files.readAllBytes(outPath);
+		String actual = new String(result, StandardCharsets.UTF_8);
+		System.out.printf("#SHA1\n");
+		System.out.printf("#%s\n", actual.trim());
+		assertEquals("643a7fea5714840b6a277339533f38bd86c13b74" + System.lineSeparator(), actual);
+	}
+
+	@Test
+	public void test_sha256() throws Exception {
+		Path inPath = Paths.get(TMPDIR, "test_sha256.in");
+		Path outPath = Paths.get(TMPDIR, "test_sha256.out");
+		byte[] inData = DATA3.getBytes(StandardCharsets.UTF_8);
+		Files.write(inPath, inData);
+		MyCryptographyUtilityApplication app = new MyCryptographyUtilityApplication();
+		app.commandLineParameters().process(new String[] {
+				"sha256",
+				"-i", inPath.toString(),
+				"-o", outPath.toString()
+		});
+		app.run();
+		byte[] result = Files.readAllBytes(outPath);
+		String actual = new String(result, StandardCharsets.UTF_8);
+		System.out.printf("#SHA256\n");
+		System.out.printf("#%s\n", actual.trim());
+		assertEquals("0ebdc91c18ad351b196362cf8587b5a61648e0dc7aae7e02971a88f4b4f7aeda" + System.lineSeparator(), actual);
+	}
+
+	@Test
+	public void test_sha384() throws Exception {
+		Path inPath = Paths.get(TMPDIR, "test_sha384.in");
+		Path outPath = Paths.get(TMPDIR, "test_sha384.out");
+		byte[] inData = DATA3.getBytes(StandardCharsets.UTF_8);
+		Files.write(inPath, inData);
+		MyCryptographyUtilityApplication app = new MyCryptographyUtilityApplication();
+		app.commandLineParameters().process(new String[] {
+				"sha384",
+				"-i", inPath.toString(),
+				"-o", outPath.toString()
+		});
+		app.run();
+		byte[] result = Files.readAllBytes(outPath);
+		String actual = new String(result, StandardCharsets.UTF_8);
+		System.out.printf("#SHA384\n");
+		System.out.printf("#%s\n", actual.trim());
+		assertEquals("db1b76e8095c82340b15fe96d806e4322afcb8360e769b07417e6f811e74e0c11dbbc17653ab185cf92794edeeef7b1b" + System.lineSeparator(), actual);
+	}
+
+	@Test
+	public void test_sha512() throws Exception {
+		Path inPath = Paths.get(TMPDIR, "test_sha512.in");
+		Path outPath = Paths.get(TMPDIR, "test_sha512.out");
+		byte[] inData = DATA3.getBytes(StandardCharsets.UTF_8);
+		Files.write(inPath, inData);
+		MyCryptographyUtilityApplication app = new MyCryptographyUtilityApplication();
+		app.commandLineParameters().process(new String[] {
+				"sha512",
+				"-i", inPath.toString(),
+				"-o", outPath.toString()
+		});
+		app.run();
+		byte[] result = Files.readAllBytes(outPath);
+		String actual = new String(result, StandardCharsets.UTF_8);
+		System.out.printf("#SHA512\n");
+		System.out.printf("#%s\n", actual.trim());
+		assertEquals("43f0736e3e6a24fb241afa7a15bfc6a7550985ba6677b8f8001b7586ddaee612c27a74e7f7660001baec67778b59d6b04d667857f91995e3e63b7a8f90492240" + System.lineSeparator(), actual);
+	}
+
 }
