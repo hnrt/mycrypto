@@ -101,15 +101,13 @@ PROJ1=$(BINDIR)$(TARGETEXE)
 OBJS1=$(OBJDIR)ByteString.o \
 	$(OBJDIR)Cipher.o \
 	$(OBJDIR)CipherPtr.o \
-	$(OBJDIR)CommandLine.o \
-	$(OBJDIR)CommandLineParameters.o \
+	$(OBJDIR)CommandLineOptionSet.o \
 	$(OBJDIR)Digest.o \
 	$(OBJDIR)DigestMode.o \
 	$(OBJDIR)DigestPtr.o \
 	$(OBJDIR)Heap.o \
 	$(OBJDIR)Main.o \
 	$(OBJDIR)MyCryptographyUtilityApplication.o \
-	$(OBJDIR)Parameter.o \
 	$(OBJDIR)StringEx.o \
 	$(OBJDIR)linux/Cipher_CreateInstance.o \
 	$(OBJDIR)linux/CipherPlatform.o \

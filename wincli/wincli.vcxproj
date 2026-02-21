@@ -158,15 +158,13 @@
     <ClCompile Include="..\src\main\cpp\ByteString.cpp" />
     <ClCompile Include="..\src\main\cpp\Cipher.cpp" />
     <ClCompile Include="..\src\main\cpp\CipherPtr.cpp" />
-    <ClCompile Include="..\src\main\cpp\CommandLine.cpp" />
-    <ClCompile Include="..\src\main\cpp\CommandLineParameters.cpp" />
+    <ClCompile Include="..\src\main\cpp\CommandLineOptionSet.cpp" />
     <ClCompile Include="..\src\main\cpp\Digest.cpp" />
     <ClCompile Include="..\src\main\cpp\DigestMode.cpp" />
     <ClCompile Include="..\src\main\cpp\DigestPtr.cpp" />
     <ClCompile Include="..\src\main\cpp\Heap.cpp" />
     <ClCompile Include="..\src\main\cpp\Main.cpp" />
     <ClCompile Include="..\src\main\cpp\MyCryptographyUtilityApplication.cpp" />
-    <ClCompile Include="..\src\main\cpp\Parameter.cpp" />
     <ClCompile Include="..\src\main\cpp\StringEx.cpp" />
     <ClCompile Include="..\src\main\cpp\win32\BCryptAlgHandle.cpp" />
     <ClCompile Include="..\src\main\cpp\win32\BCryptAuthenticatedCipherModeInfo.cpp" />
@@ -199,8 +197,9 @@
     <ClInclude Include="..\src\main\cpp\CipherPtr.h" />
     <ClInclude Include="..\src\main\cpp\Cipher.h" />
     <ClInclude Include="..\src\main\cpp\CipherMode.h" />
-    <ClInclude Include="..\src\main\cpp\CommandLine.h" />
-    <ClInclude Include="..\src\main\cpp\CommandLineParameters.h" />
+    <ClInclude Include="..\src\main\cpp\CommandLineIterator.h" />
+    <ClInclude Include="..\src\main\cpp\CommandLineOption.h" />
+    <ClInclude Include="..\src\main\cpp\CommandLineOptionSet.h" />
     <ClInclude Include="..\src\main\cpp\Debug.h" />
     <ClInclude Include="..\src\main\cpp\DigestPtr.h" />
     <ClInclude Include="..\src\main\cpp\Digest.h" />
@@ -209,7 +208,6 @@
     <ClInclude Include="..\src\main\cpp\Heap.h" />
     <ClInclude Include="..\src\main\cpp\MyCryptographyUtilityApplication.h" />
     <ClInclude Include="..\src\main\cpp\OperationMode.h" />
-    <ClInclude Include="..\src\main\cpp\Parameter.h" />
     <ClInclude Include="..\src\main\cpp\StringEx.h" />
     <ClInclude Include="..\src\main\cpp\win32\BCryptAlgHandle.h" />
     <ClInclude Include="..\src\main\cpp\win32\BCryptAuthenticatedCipherModeInfo.h" />

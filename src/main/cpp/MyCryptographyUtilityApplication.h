@@ -9,7 +9,8 @@
 #include "CipherPtr.h"
 #include "StringEx.h"
 #include "ByteString.h"
-#include "CommandLine.h"
+#include "CommandLineIterator.h"
+#include "CommandLineOptionSet.h"
 #include "File.h"
 #include <stdio.h>
 
@@ -22,49 +23,51 @@ namespace hnrt
 		MyCryptographyUtilityApplication();
 		MyCryptographyUtilityApplication(const MyCryptographyUtilityApplication&) = delete;
 		~MyCryptographyUtilityApplication();
-		bool SetAes128Ecb(CommandLine& args);
-		bool SetAes192Ecb(CommandLine& args);
-		bool SetAes256Ecb(CommandLine& args);
-		bool SetAes128Cbc(CommandLine& args);
-		bool SetAes192Cbc(CommandLine& args);
-		bool SetAes256Cbc(CommandLine& args);
-		bool SetAes128Cfb(CommandLine& args);
-		bool SetAes192Cfb(CommandLine& args);
-		bool SetAes256Cfb(CommandLine& args);
-		bool SetAes128Cfb8(CommandLine& args);
-		bool SetAes192Cfb8(CommandLine& args);
-		bool SetAes256Cfb8(CommandLine& args);
-		bool SetAes128Ofb(CommandLine& args);
-		bool SetAes192Ofb(CommandLine& args);
-		bool SetAes256Ofb(CommandLine& args);
-		bool SetAes128Ctr(CommandLine& args);
-		bool SetAes192Ctr(CommandLine& args);
-		bool SetAes256Ctr(CommandLine& args);
-		bool SetAes128Ccm(CommandLine& args);
-		bool SetAes192Ccm(CommandLine& args);
-		bool SetAes256Ccm(CommandLine& args);
-		bool SetAes128Gcm(CommandLine& args);
-		bool SetAes192Gcm(CommandLine& args);
-		bool SetAes256Gcm(CommandLine& args);
-		bool SetMD5(CommandLine& args);
-		bool SetSHA1(CommandLine& args);
-		bool SetSHA256(CommandLine& args);
-		bool SetSHA384(CommandLine& args);
-		bool SetSHA512(CommandLine& args);
-		bool SetEncryptionMode(CommandLine& args);
-		bool SetDecryptionMode(CommandLine& args);
-		bool SetInputPath(CommandLine& args);
-		bool SetOutputPath(CommandLine& args);
-		bool SetKey(CommandLine& args);
-		bool SetIV(CommandLine& args);
-		bool SetNonce(CommandLine& args);
-		bool SetPassphrase(CommandLine& args);
-		bool SetAdditionalAuthenticatedData(CommandLine& args);
-		bool SetNonceLength(CommandLine& args);
-		bool SetTagLength(CommandLine& args);
-		bool Help(CommandLine& args);
+		bool SetAes128Ecb(CommandLineIterator& iterator);
+		bool SetAes192Ecb(CommandLineIterator& iterator);
+		bool SetAes256Ecb(CommandLineIterator& iterator);
+		bool SetAes128Cbc(CommandLineIterator& iterator);
+		bool SetAes192Cbc(CommandLineIterator& iterator);
+		bool SetAes256Cbc(CommandLineIterator& iterator);
+		bool SetAes128Cfb(CommandLineIterator& iterator);
+		bool SetAes192Cfb(CommandLineIterator& iterator);
+		bool SetAes256Cfb(CommandLineIterator& iterator);
+		bool SetAes128Cfb8(CommandLineIterator& iterator);
+		bool SetAes192Cfb8(CommandLineIterator& iterator);
+		bool SetAes256Cfb8(CommandLineIterator& iterator);
+		bool SetAes128Ofb(CommandLineIterator& iterator);
+		bool SetAes192Ofb(CommandLineIterator& iterator);
+		bool SetAes256Ofb(CommandLineIterator& iterator);
+		bool SetAes128Ctr(CommandLineIterator& iterator);
+		bool SetAes192Ctr(CommandLineIterator& iterator);
+		bool SetAes256Ctr(CommandLineIterator& iterator);
+		bool SetAes128Ccm(CommandLineIterator& iterator);
+		bool SetAes192Ccm(CommandLineIterator& iterator);
+		bool SetAes256Ccm(CommandLineIterator& iterator);
+		bool SetAes128Gcm(CommandLineIterator& iterator);
+		bool SetAes192Gcm(CommandLineIterator& iterator);
+		bool SetAes256Gcm(CommandLineIterator& iterator);
+		bool SetMD5(CommandLineIterator& iterator);
+		bool SetSHA1(CommandLineIterator& iterator);
+		bool SetSHA256(CommandLineIterator& iterator);
+		bool SetSHA384(CommandLineIterator& iterator);
+		bool SetSHA512(CommandLineIterator& iterator);
+		bool SetEncryptionMode(CommandLineIterator& iterator);
+		bool SetDecryptionMode(CommandLineIterator& iterator);
+		bool SetInputPath(CommandLineIterator& iterator);
+		bool SetOutputPath(CommandLineIterator& iterator);
+		bool SetKey(CommandLineIterator& iterator);
+		bool SetIV(CommandLineIterator& iterator);
+		bool SetNonce(CommandLineIterator& iterator);
+		bool SetPassphrase(CommandLineIterator& iterator);
+		bool SetAdditionalAuthenticatedData(CommandLineIterator& iterator);
+		bool SetNonceLength(CommandLineIterator& iterator);
+		bool SetTagLength(CommandLineIterator& iterator);
+		bool Help(CommandLineIterator& iterator);
+		bool Parse(int argc, char* argv[]);
 		void Run();
 		void Rollback();
+		void Help(const char* arg0);
 
 	private:
 
@@ -98,6 +101,9 @@ namespace hnrt
 		int _nonceLength;
 		int _tagLength;
 		FILE* _console;
+		CommandLineOptionSet _optionSet;
+		CommandLineOptionSet _cipherOptionSet;
+		CommandLineOptionSet _digestOptionSet;
 	};
 }
 

@@ -37,7 +37,76 @@ MyCryptographyUtilityApplication::MyCryptographyUtilityApplication()
 	, _nonceLength(0)
 	, _tagLength(0)
 	, _console(stdout)
+	, _optionSet("Options")
+	, _cipherOptionSet("Cipher options")
+	, _digestOptionSet("Digest options")
 {
+	_optionSet
+		.Add("aes-128-ecb", NULL, "cipher: AES [Electronic CodeBook] key=16 padding=PKCS5", &MyCryptographyUtilityApplication::SetAes128Ecb)
+		.Add("aes-192-ecb", NULL, "cipher: AES [Electronic CodeBook] key=24 padding=PKCS5", &MyCryptographyUtilityApplication::SetAes192Ecb)
+		.Add("aes-256-ecb", NULL, "cipher: AES [Electronic CodeBook] key=32 padding=PKCS5", &MyCryptographyUtilityApplication::SetAes256Ecb)
+		.Add("aes-128-cbc", NULL, "cipher: AES [Cipher Block Chaining] key=16 iv=16 padding=PKCS5", &MyCryptographyUtilityApplication::SetAes128Cbc)
+		.Add("aes-192-cbc", NULL, "cipher: AES [Cipher Block Chaining] key=24 iv=16 padding=PKCS5", &MyCryptographyUtilityApplication::SetAes192Cbc)
+		.Add("aes-256-cbc", NULL, "cipher: AES [Cipher Block Chaining] key=32 iv=16 padding=PKCS5", &MyCryptographyUtilityApplication::SetAes256Cbc)
+		.Add("aes-128-cfb", NULL, "cipher: AES [Cipher Feedback Mode] key=16 iv=16 padding=none", &MyCryptographyUtilityApplication::SetAes128Cfb)
+		.Add("aes-192-cfb", NULL, "cipher: AES [Cipher Feedback Mode] key=24 iv=16 padding=none", &MyCryptographyUtilityApplication::SetAes192Cfb)
+		.Add("aes-256-cfb", NULL, "cipher: AES [Cipher Feedback Mode] key=32 iv=16 padding=none", &MyCryptographyUtilityApplication::SetAes256Cfb)
+		.Add("aes-128-cfb8", NULL, "cipher: AES [8-bit Cipher Feedback Mode] key=16 iv=16 padding=none", &MyCryptographyUtilityApplication::SetAes128Cfb8)
+		.Add("aes-192-cfb8", NULL, "cipher: AES [8-bit Cipher Feedback Mode] key=24 iv=16 padding=none", &MyCryptographyUtilityApplication::SetAes192Cfb8)
+		.Add("aes-256-cfb8", NULL, "cipher: AES [8-bit Cipher Feedback Mode] key=32 iv=16 padding=none", &MyCryptographyUtilityApplication::SetAes256Cfb8)
+		.Add("aes-128-ofb", NULL, "cipher: AES [Output Feedback Mode] key=16 iv=16 padding=none", &MyCryptographyUtilityApplication::SetAes128Ofb)
+		.Add("aes-192-ofb", NULL, "cipher: AES [Output Feedback Mode] key=24 iv=16 padding=none", &MyCryptographyUtilityApplication::SetAes192Ofb)
+		.Add("aes-256-ofb", NULL, "cipher: AES [Output Feedback Mode] key=32 iv=16 padding=none", &MyCryptographyUtilityApplication::SetAes256Ofb)
+		.Add("aes-128-ctr", NULL, "cipher: AES [Counter Mode] key=16 iv=16 padding=none", &MyCryptographyUtilityApplication::SetAes128Ctr)
+		.Add("aes-192-ctr", NULL, "cipher: AES [Counter Mode] key=24 iv=16 padding=none", &MyCryptographyUtilityApplication::SetAes192Ctr)
+		.Add("aes-256-ctr", NULL, "cipher: AES [Counter Mode] key=32 iv=16 padding=none", &MyCryptographyUtilityApplication::SetAes256Ctr)
+		.Add("aes-128-ccm", NULL, "cipher: AES [Counter with CBC-MAC] key=16 nonce=7 tag=12", &MyCryptographyUtilityApplication::SetAes128Ccm)
+		.Add("aes-192-ccm", NULL, "cipher: AES [Counter with CBC-MAC] key=24 nonce=7 tag=12", &MyCryptographyUtilityApplication::SetAes192Ccm)
+		.Add("aes-256-ccm", NULL, "cipher: AES [Counter with CBC-MAC] key=32 nonce=7 tag=12", &MyCryptographyUtilityApplication::SetAes256Ccm)
+		.Add("aes-128-gcm", NULL, "cipher: AES [Galois/Counter Mode] key=16 nonce=12 tag=16", &MyCryptographyUtilityApplication::SetAes128Gcm)
+		.Add("aes-192-gcm", NULL, "cipher: AES [Galois/Counter Mode] key=24 nonce=12 tag=16", &MyCryptographyUtilityApplication::SetAes192Gcm)
+		.Add("aes-256-gcm", NULL, "cipher: AES [Galois/Counter Mode] key=32 nonce=12 tag=16", &MyCryptographyUtilityApplication::SetAes256Gcm)
+		.Add("md5", NULL, "digest: MD5 (16 bytes long)", &MyCryptographyUtilityApplication::SetMD5)
+		.Add("sha1", NULL, "digest: SHA1 (20 bytes long)", &MyCryptographyUtilityApplication::SetSHA1)
+		.Add("sha256", NULL, "digest: SHA256 (32 bytes long)", &MyCryptographyUtilityApplication::SetSHA256)
+		.Add("sha384", NULL, "digest: SHA384 (48 bytes long)", &MyCryptographyUtilityApplication::SetSHA384)
+		.Add("sha512", NULL, "digest: SHA512 (64 bytes long)", &MyCryptographyUtilityApplication::SetSHA512)
+		.Add("help", NULL, "prints this message", &MyCryptographyUtilityApplication::Help)
+		.AddAlias("-help", "help")
+		.AddAlias("-h", "help");
+	_cipherOptionSet
+		.Add("-encrypt", NULL, "sets operation mode to encryption", &MyCryptographyUtilityApplication::SetEncryptionMode)
+		.Add("-decrypt", NULL, "sets operation mode to decryption", &MyCryptographyUtilityApplication::SetDecryptionMode)
+		.Add("-input", "PATH", "specifies input file path\nreads from standard input if a hyphen is specified", &MyCryptographyUtilityApplication::SetInputPath)
+		.Add("-output", "PATH", "specifies output file path\nwrites to standard output if a hyphen is specified", &MyCryptographyUtilityApplication::SetOutputPath)
+		.Add("-passphrase", "TEXT", "specifies passphrase to generate key", &MyCryptographyUtilityApplication::SetPassphrase)
+		.Add("-key", "HEX", "specifies private key", &MyCryptographyUtilityApplication::SetKey)
+		.Add("-iv", "HEX", "specifies initial vector", &MyCryptographyUtilityApplication::SetIV)
+		.Add("-nonce", "HEX", "specifies nonce for AEAD", &MyCryptographyUtilityApplication::SetNonce)
+		.Add("-aad", "TEXT", "specifies additional authenticated data for AEAD", &MyCryptographyUtilityApplication::SetAdditionalAuthenticatedData)
+		.Add("-noncelength", "NUM", "specifies nonce length for AEAD\ndefault: ccm=7 gcm=12", &MyCryptographyUtilityApplication::SetNonceLength)
+		.Add("-taglength", "NUM", "specifies tag length for AEAD\ndefault: ccm=12 gcm=16", &MyCryptographyUtilityApplication::SetTagLength)
+		.Add("-help", NULL, NULL, &MyCryptographyUtilityApplication::Help)
+		.AddAlias("-e", "-encrypt")
+		.AddAlias("-d", "-decrypt")
+		.AddAlias("-i", "-input")
+		.AddAlias("-o", "-output")
+		.AddAlias("-p", "-passphrase")
+		.AddAlias("-k", "-key")
+		.AddAlias("-v", "-iv")
+		.AddAlias("-n", "-nonce")
+		.AddAlias("-a", "-aad")
+		.AddAlias("-N", "-noncelength")
+		.AddAlias("-T", "-taglength")
+		.AddAlias("-h", "-help");
+	_digestOptionSet
+		.Add("-input", "PATH", "specifies input file path\nreads from standard input if a hyphen is specified", &MyCryptographyUtilityApplication::SetInputPath)
+		.Add("-output", "PATH", "specifies output file path\nwrites to standard output by default", &MyCryptographyUtilityApplication::SetOutputPath)
+		.Add("-help", NULL, NULL, &MyCryptographyUtilityApplication::Help)
+		.AddAlias("-i", "-input")
+		.AddAlias("-o", "-output")
+		.AddAlias("-h", "-help");
+	CommandLineOptionSet::AlignFormat(&_optionSet, &_cipherOptionSet, &_digestOptionSet, nullptr);
 }
 
 
@@ -46,268 +115,252 @@ MyCryptographyUtilityApplication::~MyCryptographyUtilityApplication()
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes128Ecb(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes128Ecb(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes128Ecb\n");
 	SetCipherMode(CipherMode::AES_128_ECB);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes192Ecb(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes192Ecb(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes192Ecb\n");
 	SetCipherMode(CipherMode::AES_192_ECB);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes256Ecb(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes256Ecb(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes256Ecb\n");
 	SetCipherMode(CipherMode::AES_256_ECB);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes128Cbc(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes128Cbc(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes128Cbc\n");
 	SetCipherMode(CipherMode::AES_128_CBC);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes192Cbc(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes192Cbc(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes192Cbc\n");
 	SetCipherMode(CipherMode::AES_192_CBC);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes256Cbc(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes256Cbc(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes256Cbc\n");
 	SetCipherMode(CipherMode::AES_256_CBC);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes128Cfb(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes128Cfb(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes128Cfb\n");
 	SetCipherMode(CipherMode::AES_128_CFB);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes192Cfb(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes192Cfb(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes192Cfb\n");
 	SetCipherMode(CipherMode::AES_192_CFB);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes256Cfb(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes256Cfb(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes256Cfb\n");
 	SetCipherMode(CipherMode::AES_256_CFB);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes128Cfb8(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes128Cfb8(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes128Cfb8\n");
 	SetCipherMode(CipherMode::AES_128_CFB8);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes192Cfb8(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes192Cfb8(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes192Cfb8\n");
 	SetCipherMode(CipherMode::AES_192_CFB8);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes256Cfb8(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes256Cfb8(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes256Cfb8\n");
 	SetCipherMode(CipherMode::AES_256_CFB8);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes128Ofb(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes128Ofb(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes128Ofb\n");
 	SetCipherMode(CipherMode::AES_128_OFB);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes192Ofb(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes192Ofb(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes192Ofb\n");
 	SetCipherMode(CipherMode::AES_192_OFB);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes256Ofb(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes256Ofb(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes256Ofb\n");
 	SetCipherMode(CipherMode::AES_256_OFB);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes128Ctr(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes128Ctr(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes128Ctr\n");
 	SetCipherMode(CipherMode::AES_128_CTR);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes192Ctr(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes192Ctr(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes192Ctr\n");
 	SetCipherMode(CipherMode::AES_192_CTR);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes256Ctr(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes256Ctr(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes256Ctr\n");
 	SetCipherMode(CipherMode::AES_256_CTR);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes128Ccm(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes128Ccm(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes128Ccm\n");
 	SetCipherMode(CipherMode::AES_128_CCM);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes192Ccm(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes192Ccm(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes192Ccm\n");
 	SetCipherMode(CipherMode::AES_192_CCM);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes256Ccm(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes256Ccm(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes256Ccm\n");
 	SetCipherMode(CipherMode::AES_256_CCM);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes128Gcm(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes128Gcm(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes128Gcm\n");
 	SetCipherMode(CipherMode::AES_128_GCM);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes192Gcm(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes192Gcm(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes192Gcm\n");
 	SetCipherMode(CipherMode::AES_192_GCM);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetAes256Gcm(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAes256Gcm(CommandLineIterator& iterator)
 {
 	DEBUG("#SetAes256Gcm\n");
 	SetCipherMode(CipherMode::AES_256_GCM);
-	return true;
+	return _cipherOptionSet.Process(*this, iterator);
 }
 
 
 void MyCryptographyUtilityApplication::SetCipherMode(CipherMode mode)
 {
-	if (_cipherMode != CipherMode::CIPHER_UNSPECIFIED)
-	{
-		throw std::runtime_error("Cipher is specified more than once.");
-	}
-	else if (_digestMode != DigestMode::DIGEST_UNSPECIFIED)
-	{
-		throw std::runtime_error("Both cipher and digest are specified at the same time. Specify one of them at a time.");
-	}
 	_cipherMode = mode;
 }
 
 
-bool MyCryptographyUtilityApplication::SetMD5(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetMD5(CommandLineIterator& iterator)
 {
 	DEBUG("#SetMD5\n");
 	SetDigestMode(DigestMode::MD5);
-	return true;
+	return _digestOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetSHA1(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetSHA1(CommandLineIterator& iterator)
 {
 	DEBUG("#SetSHA1\n");
 	SetDigestMode(DigestMode::SHA1);
-	return true;
+	return _digestOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetSHA256(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetSHA256(CommandLineIterator& iterator)
 {
 	DEBUG("#SetSHA256\n");
 	SetDigestMode(DigestMode::SHA256);
-	return true;
+	return _digestOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetSHA384(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetSHA384(CommandLineIterator& iterator)
 {
 	DEBUG("#SetSHA384\n");
 	SetDigestMode(DigestMode::SHA384);
-	return true;
+	return _digestOptionSet.Process(*this, iterator);
 }
 
 
-bool MyCryptographyUtilityApplication::SetSHA512(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetSHA512(CommandLineIterator& iterator)
 {
 	DEBUG("#SetSHA512\n");
 	SetDigestMode(DigestMode::SHA512);
-	return true;
+	return _digestOptionSet.Process(*this, iterator);
 }
 
 
 void MyCryptographyUtilityApplication::SetDigestMode(DigestMode mode)
 {
-	if (_cipherMode != CipherMode::CIPHER_UNSPECIFIED)
-	{
-		throw std::runtime_error("Both cipher and digest are specified at the same time. Specify one of them at a time.");
-	}
-	else if (_digestMode != DigestMode::DIGEST_UNSPECIFIED)
-	{
-		throw std::runtime_error("Digest is specified more than once.");
-	}
-	_operationMode = OperationMode::DIGEST;
 	_digestMode = mode;
+	_operationMode = OperationMode::DIGEST;
 }
 
 
-bool MyCryptographyUtilityApplication::SetEncryptionMode(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetEncryptionMode(CommandLineIterator& iterator)
 {
 	if (_operationMode == OperationMode::ENCRYPTION || _operationMode == OperationMode::DECRYPTION)
 	{
@@ -319,7 +372,7 @@ bool MyCryptographyUtilityApplication::SetEncryptionMode(CommandLine& args)
 }
 
 
-bool MyCryptographyUtilityApplication::SetDecryptionMode(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetDecryptionMode(CommandLineIterator& iterator)
 {
 	if (_operationMode == OperationMode::ENCRYPTION || _operationMode == OperationMode::DECRYPTION)
 	{
@@ -331,9 +384,9 @@ bool MyCryptographyUtilityApplication::SetDecryptionMode(CommandLine& args)
 }
 
 
-bool MyCryptographyUtilityApplication::SetInputPath(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetInputPath(CommandLineIterator& iterator)
 {
-	if (!args.Next())
+	if (!iterator.HasNext())
 	{
 		throw std::runtime_error("-input: Value is missing.");
 	}
@@ -341,15 +394,15 @@ bool MyCryptographyUtilityApplication::SetInputPath(CommandLine& args)
 	{
 		throw std::runtime_error("Input file path cannot be specified twice.");
 	}
-	_inputPath = args.Argument();
+	_inputPath = iterator.Next();
 	DEBUG("#SetInputPath(%s)\n", _inputPath.Ptr());
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetOutputPath(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetOutputPath(CommandLineIterator& iterator)
 {
-	if (!args.Next())
+	if (!iterator.HasNext())
 	{
 		throw std::runtime_error("-output: Value is missing.");
 	}
@@ -357,7 +410,7 @@ bool MyCryptographyUtilityApplication::SetOutputPath(CommandLine& args)
 	{
 		throw std::runtime_error("Output file path cannot be specified twice.");
 	}
-	_outputPath = args.Argument();
+	_outputPath = iterator.Next();
 	if (!IsStandardOutputMode())
 	{
 		_temporaryPath = String::Format("%s.%zu", _outputPath.Ptr(), static_cast<size_t>(time(NULL)));
@@ -367,9 +420,9 @@ bool MyCryptographyUtilityApplication::SetOutputPath(CommandLine& args)
 }
 
 
-bool MyCryptographyUtilityApplication::SetPassphrase(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetPassphrase(CommandLineIterator& iterator)
 {
-	if (!args.Next())
+	if (!iterator.HasNext())
 	{
 		throw std::runtime_error("-passphrase: Value is missing.");
 	}
@@ -377,15 +430,15 @@ bool MyCryptographyUtilityApplication::SetPassphrase(CommandLine& args)
 	{
 		throw std::runtime_error("Passphrase cannot be specified twice.");
 	}
-	_passphrase = args.Argument();
+	_passphrase = iterator.Next();
 	DEBUG("#SetPassphrase(%s)\n", _passphrase.Ptr());
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetKey(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetKey(CommandLineIterator& iterator)
 {
-	if (!args.Next())
+	if (!iterator.HasNext())
 	{
 		throw std::runtime_error("-key: Value is missing.");
 	}
@@ -393,15 +446,15 @@ bool MyCryptographyUtilityApplication::SetKey(CommandLine& args)
 	{
 		throw std::runtime_error("Key cannot be specified twice.");
 	}
-	_key = ByteString::ParseHex(args.Argument());
+	_key = ByteString::ParseHex(iterator.Next());
 	DEBUG("#SetKey(%s)\n", String::Hex(_key).Ptr());
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetIV(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetIV(CommandLineIterator& iterator)
 {
-	if (!args.Next())
+	if (!iterator.HasNext())
 	{
 		throw std::runtime_error("-iv: Value is missing.");
 	}
@@ -409,15 +462,15 @@ bool MyCryptographyUtilityApplication::SetIV(CommandLine& args)
 	{
 		throw std::runtime_error("IV cannot be specified twice.");
 	}
-	_iv = ByteString::ParseHex(args.Argument());
+	_iv = ByteString::ParseHex(iterator.Next());
 	DEBUG("#SetIV(%s)\n", String::Hex(_iv).Ptr());
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetNonce(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetNonce(CommandLineIterator& iterator)
 {
-	if (!args.Next())
+	if (!iterator.HasNext())
 	{
 		throw std::runtime_error("-nonce: Value is missing.");
 	}
@@ -425,15 +478,15 @@ bool MyCryptographyUtilityApplication::SetNonce(CommandLine& args)
 	{
 		throw std::runtime_error("Nonce cannot be specified twice.");
 	}
-	_nonce = ByteString::ParseHex(args.Argument());
+	_nonce = ByteString::ParseHex(iterator.Next());
 	DEBUG("#SetNonce(%s)\n", String::Hex(_nonce).Ptr());
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetAdditionalAuthenticatedData(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetAdditionalAuthenticatedData(CommandLineIterator& iterator)
 {
-	if (!args.Next())
+	if (!iterator.HasNext())
 	{
 		throw std::runtime_error("-aad: Value is missing.");
 	}
@@ -441,15 +494,15 @@ bool MyCryptographyUtilityApplication::SetAdditionalAuthenticatedData(CommandLin
 	{
 		throw std::runtime_error("AAD cannot be specified twice.");
 	}
-	_aad = args.Argument();
+	_aad = iterator.Next();
 	DEBUG("#SetAdditionalAuthenticatedData(%s)\n", _aad.Ptr());
 	return true;
 }
 
 
-bool MyCryptographyUtilityApplication::SetNonceLength(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetNonceLength(CommandLineIterator& iterator)
 {
-	if (!args.Next())
+	if (!iterator.HasNext())
 	{
 		throw std::runtime_error("-noncelength: Value is missing.");
 	}
@@ -458,8 +511,8 @@ bool MyCryptographyUtilityApplication::SetNonceLength(CommandLine& args)
 		throw std::runtime_error("Nonce length cannot be specified twice.");
 	}
 	char* stopped = nullptr;
-	_nonceLength = strtoul(args.Argument(), &stopped, 10);
-	if (args.Argument() == const_cast<const char*>(stopped) || *stopped || _nonceLength <= 0)
+	_nonceLength = strtoul(iterator.Next(), &stopped, 10);
+	if (iterator.Next() == const_cast<const char*>(stopped) || *stopped || _nonceLength <= 0)
 	{
 		throw std::runtime_error("-noncelength: Value is invalid.");
 	}
@@ -468,9 +521,9 @@ bool MyCryptographyUtilityApplication::SetNonceLength(CommandLine& args)
 }
 
 
-bool MyCryptographyUtilityApplication::SetTagLength(CommandLine& args)
+bool MyCryptographyUtilityApplication::SetTagLength(CommandLineIterator& iterator)
 {
-	if (!args.Next())
+	if (!iterator.HasNext())
 	{
 		throw std::runtime_error("-taglength: Value is missing.");
 	}
@@ -479,8 +532,8 @@ bool MyCryptographyUtilityApplication::SetTagLength(CommandLine& args)
 		throw std::runtime_error("Tag length cannot be specified twice.");
 	}
 	char* stopped = nullptr;
-	_tagLength = strtoul(args.Argument(), &stopped, 10);
-	if (args.Argument() == const_cast<const char*>(stopped) || *stopped || _tagLength <= 0)
+	_tagLength = strtoul(iterator.Next(), &stopped, 10);
+	if (iterator.Next() == const_cast<const char*>(stopped) || *stopped || _tagLength <= 0)
 	{
 		throw std::runtime_error("-taglength: Value is invalid.");
 	}
@@ -489,9 +542,15 @@ bool MyCryptographyUtilityApplication::SetTagLength(CommandLine& args)
 }
 
 
-bool MyCryptographyUtilityApplication::Help(CommandLine& args)
+bool MyCryptographyUtilityApplication::Help(CommandLineIterator& iterator)
 {
 	return false;
+}
+
+
+bool MyCryptographyUtilityApplication::Parse(int argc, char* argv[])
+{
+	return _optionSet.Process(*this, argc, argv);
 }
 
 
@@ -1053,4 +1112,15 @@ void MyCryptographyUtilityApplication::ComputeDigest()
 	ByteString result = digest->Finalize();
 	String hex = String::Lowercase(String::Hex(result));
 	fprintf(stdout, "%s\n", hex.Ptr());
+}
+
+
+void MyCryptographyUtilityApplication::Help(const char* arg0)
+{
+	arg0 = strchr(arg0, DIRECTORY_SEPARATOR_CHAR) ? strrchr(arg0, DIRECTORY_SEPARATOR_CHAR) + 1 : arg0;
+	fprintf(stdout, "Syntax:\n");
+	fprintf(stdout, "  %s options\n", arg0);
+	fprintf(stdout, "\n%s", _optionSet.ToString().Ptr());
+	fprintf(stdout, "\n%s", _cipherOptionSet.ToString().Ptr());
+	fprintf(stdout, "\n%s", _digestOptionSet.ToString().Ptr());
 }

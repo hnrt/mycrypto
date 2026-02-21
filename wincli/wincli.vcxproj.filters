@@ -21,16 +21,10 @@
     <ClCompile Include="..\src\main\cpp\MyCryptographyUtilityApplication.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\main\cpp\CommandLineParameters.cpp">
+    <ClCompile Include="..\src\main\cpp\CommandLineOptionSet.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="..\src\main\cpp\StringEx.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\main\cpp\Parameter.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\main\cpp\CommandLine.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="..\src\main\cpp\CipherPtr.cpp">
@@ -122,16 +116,13 @@
     <ClInclude Include="..\src\main\cpp\MyCryptographyUtilityApplication.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\main\cpp\CommandLineParameters.h">
+    <ClInclude Include="..\src\main\cpp\CommandLineOptionSet.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="..\src\main\cpp\StringEx.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\main\cpp\Parameter.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\main\cpp\CommandLine.h">
+    <ClInclude Include="..\src\main\cpp\CommandLineIterator.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="..\src\main\cpp\Debug.h">
@@ -234,6 +225,9 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="..\src\main\cpp\AES.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\main\cpp\CommandLineOption.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
