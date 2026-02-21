@@ -1032,7 +1032,7 @@ void MyCryptographyUtilityApplication::PrintCipherResult(const ByteString& tag, 
 
 void MyCryptographyUtilityApplication::ComputeDigest()
 {
-	if (!_inputPath.Ptr())
+	if (!_inputPath)
 	{
 		throw std::runtime_error("Input file path is not specified.");
 	}

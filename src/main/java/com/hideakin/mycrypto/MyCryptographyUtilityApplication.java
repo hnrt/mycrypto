@@ -21,7 +21,7 @@ import javax.crypto.spec.SecretKeySpec;
 import com.hideakin.mycrypto.constant.Algorithm;
 import com.hideakin.mycrypto.constant.CipherMode;
 import com.hideakin.mycrypto.constant.Padding;
-import com.hideakin.util.CommandLineParameters;
+import com.hideakin.util.CommandLineOptionSet;
 import com.hideakin.util.HexString;
 import com.hideakin.util.TextHelpers;
 
@@ -43,8 +43,13 @@ public class MyCryptographyUtilityApplication {
 	private static final int FLAG_OVERWRITE = 1 << 0;
 	private static final int FLAG_IN_TO_CLOSE = 1 << 1;
 	private static final int FLAG_OUT_TO_CLOSE = 1 << 2;
+	private static final int FLAG_UPPERCASE = 1 << 16;
 
 	private static final int DIGEST_MODE = 999;
+
+	private final CommandLineOptionSet _optionSet = new CommandLineOptionSet("Options");
+	private final CommandLineOptionSet _cipherOptionSet = new CommandLineOptionSet("Cipher options");
+	private final CommandLineOptionSet _digestOptionSet = new CommandLineOptionSet("Digest options");
 
 	private Algorithm _algorithm = Algorithm.UNDEFINED;
 	private CipherMode _cipherMode = CipherMode.UNDEFINED;
@@ -65,9 +70,9 @@ public class MyCryptographyUtilityApplication {
 	private Path _tmpPath;
 	private int _operationMode = 0; // Cipher.ENCRYPT_MODE, Cipher.DECRYPT_MODE or DIGEST_MODE
 	private int _flags = 0;
-	private PrintStream _info;
-	private long inBytes = 0L;
-	private long outBytes = 0L;
+	private PrintStream _console;
+	private long _inBytes = 0L;
+	private long _outBytes = 0L;
 	
 	private final Map<CipherMode, Supplier<Cipher>> _cipherSupplier = new HashMap<CipherMode, Supplier<Cipher>>() {
 		{
@@ -83,6 +88,271 @@ public class MyCryptographyUtilityApplication {
 	};
 
 	public MyCryptographyUtilityApplication() {
+		_optionSet
+		.add("aes-128-ecb", transformationDescription(Algorithm.AES, CipherMode.ECB, Padding.PKCS5, 128), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.ECB, Padding.PKCS5, AES_128_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-192-ecb", transformationDescription(Algorithm.AES, CipherMode.ECB, Padding.PKCS5, 192), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.ECB, Padding.PKCS5, AES_192_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-256-ecb", transformationDescription(Algorithm.AES, CipherMode.ECB, Padding.PKCS5, 256), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.ECB, Padding.PKCS5, AES_256_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-128-cbc", transformationDescription(Algorithm.AES, CipherMode.CBC, Padding.PKCS5, 128), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.CBC, Padding.PKCS5, AES_128_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-192-cbc", transformationDescription(Algorithm.AES, CipherMode.CBC, Padding.PKCS5, 192), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.CBC, Padding.PKCS5, AES_192_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-256-cbc", transformationDescription(Algorithm.AES, CipherMode.CBC, Padding.PKCS5, 256), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.CBC, Padding.PKCS5, AES_256_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-128-cfb", transformationDescription(Algorithm.AES, CipherMode.CFB, Padding.NONE, 128), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.CFB, Padding.NONE, AES_128_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-192-cfb", transformationDescription(Algorithm.AES, CipherMode.CFB, Padding.NONE, 192), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.CFB, Padding.NONE, AES_192_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-256-cfb", transformationDescription(Algorithm.AES, CipherMode.CFB, Padding.NONE, 256), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.CFB, Padding.NONE, AES_256_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-128-cfb8", transformationDescription(Algorithm.AES, CipherMode.CFB8, Padding.NONE, 128), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.CFB8, Padding.NONE, AES_128_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-192-cfb8", transformationDescription(Algorithm.AES, CipherMode.CFB8, Padding.NONE, 192), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.CFB8, Padding.NONE, AES_192_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-256-cfb8", transformationDescription(Algorithm.AES, CipherMode.CFB8, Padding.NONE, 256), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.CFB8, Padding.NONE, AES_256_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-128-ofb", transformationDescription(Algorithm.AES, CipherMode.OFB, Padding.NONE, 128), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.OFB, Padding.NONE, AES_128_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-192-ofb", transformationDescription(Algorithm.AES, CipherMode.OFB, Padding.NONE, 192), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.OFB, Padding.NONE, AES_192_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-256-ofb", transformationDescription(Algorithm.AES, CipherMode.OFB, Padding.NONE, 256), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.OFB, Padding.NONE, AES_256_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-128-ofb8", transformationDescription(Algorithm.AES, CipherMode.OFB8, Padding.NONE, 128), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.OFB8, Padding.NONE, AES_128_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-192-ofb8", transformationDescription(Algorithm.AES, CipherMode.OFB8, Padding.NONE, 192), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.OFB8, Padding.NONE, AES_192_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-256-ofb8", transformationDescription(Algorithm.AES, CipherMode.OFB8, Padding.NONE, 256), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.OFB8, Padding.NONE, AES_256_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-128-ctr", transformationDescription(Algorithm.AES, CipherMode.CTR, Padding.NONE, 128), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.CTR, Padding.NONE, AES_128_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-192-ctr", transformationDescription(Algorithm.AES, CipherMode.CTR, Padding.NONE, 192), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.CTR, Padding.NONE, AES_192_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-256-ctr", transformationDescription(Algorithm.AES, CipherMode.CTR, Padding.NONE, 256), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.CTR, Padding.NONE, AES_256_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-128-gcm", transformationDescription(Algorithm.AES, CipherMode.GCM, Padding.NONE, 128), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.GCM, Padding.NONE, AES_128_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-192-gcm", transformationDescription(Algorithm.AES, CipherMode.GCM, Padding.NONE, 192), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.GCM, Padding.NONE, AES_192_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("aes-256-gcm", transformationDescription(Algorithm.AES, CipherMode.GCM, Padding.NONE, 256), (i) -> {
+			setTransformation(Algorithm.AES, CipherMode.GCM, Padding.NONE, AES_256_KEY_LENGTH);
+			return _cipherOptionSet.process(i);
+		})
+		.add("md5", "digest: MD5 (16 bytes long)", (i) -> {
+			setDigestMode(Algorithm.MD5);
+			return _digestOptionSet.process(i);
+		})
+		.add("sha1", "digest: SHA1 (20 bytes long)", (i) -> {
+			setDigestMode(Algorithm.SHA1);
+			return _digestOptionSet.process(i);
+		})
+		.add("sha256", "digest: SHA256 (32 bytes long)", (i) -> {
+			setDigestMode(Algorithm.SHA256);
+			return _digestOptionSet.process(i);
+		})
+		.add("sha384", "digest: SHA384 (48 bytes long)", (i) -> {
+			setDigestMode(Algorithm.SHA384);
+			return _digestOptionSet.process(i);
+		})
+		.add("sha512", "digest: SHA512 (64 bytes long)", (i) -> {
+			setDigestMode(Algorithm.SHA512);
+			return _digestOptionSet.process(i);
+		})
+		.add("help", "prints this message", (i) -> {
+			help();
+			return false;
+		})
+		.addAlias("-help", "help")
+		.addAlias("-h", "help");
+		_cipherOptionSet
+		.add("-encrypt", "sets operation mode to encryption", (i) -> {
+			setOperation(Cipher.ENCRYPT_MODE);
+			return true;
+		})
+		.add("-decrypt", "sets operation mode to decryption", (i) -> {
+			setOperation(Cipher.DECRYPT_MODE);
+			return true;
+		})
+		.add("-input", "PATH", "specifies input file path\nreads from standard input if a hyphen is specified", (i) -> {
+			if (i.hasNext()) {
+				setInputPath(i.next());
+				return true;
+			} else {
+				throw new RuntimeException("Input file is not specified.");
+			}
+		})
+		.add("-output", "PATH", "specifies output file path\nwrites to standard output if a hyphen is specified", (i) -> {
+			if (i.hasNext()) {
+				setOutputPath(i.next());
+				return true;
+			} else {
+				throw new RuntimeException("Output file is not specified.");
+			}
+		})
+		.add("-passphrase", "TEXT", "specifies passphrase to generate key", (i) -> {
+			if (i.hasNext()) {
+				if (!hasPassphrase()) {
+					setPassphrase(i.next());
+					return true;
+				} else {
+					throw new RuntimeException("Private key is already specified.");
+				}
+			} else {
+				throw new RuntimeException("Key phrase is not specified.");
+			}
+		})
+		.add("-key", "HEX", "specifies private key", (i) -> {
+			if (i.hasNext()) {
+				if (!hasKey()) {
+					setKey(i.nextBinary());
+					return true;
+				} else {
+					throw new RuntimeException("Private key is already specified.");
+				}
+			} else {
+				throw new RuntimeException("Private key is not specified.");
+			}
+		})
+		.add("-iv", "HEX", "specifies initial vector", (i) -> {
+			if (i.hasNext()) {
+				if (!hasIv()) {
+					setIV(i.nextBinary());
+					return true;
+				} else {
+					throw new RuntimeException("Initial vector is already specified.");
+				}
+			} else {
+				throw new RuntimeException("Initial vector is not specified.");
+			}
+		})
+		.add("-nonce", "HEX", "specifies nonce for AEAD", (i) -> {
+			if (i.hasNext()) {
+				if (!hasNonce()) {
+					setNonce(i.nextBinary());
+					return true;
+				} else {
+					throw new RuntimeException("Nonce is already specified.");
+				}
+			} else {
+				throw new RuntimeException("Nonce is not specified.");
+			}
+		})
+		.add("-aad", "TEXT", "specifies additional authenticated data for AEAD", (i) -> {
+			if (i.hasNext()) {
+				if (!hasAAD()) {
+					setAAD(i.next().getBytes());
+					return true;
+				} else {
+					throw new RuntimeException("Additional authentication data is already specified.");
+				}
+			} else {
+				throw new RuntimeException("Additional authentication data is not specified with text.");
+			}
+		})
+		.add("-taglength", "NUM", String.format("specifies tag length for AEAD\ndefault: gcm=%d", AES_GCM_TAG_LENGTH_DEFAULT), (i) -> {
+			if (i.hasNext()) {
+				if (!hasTagLength()) {
+					setTagLength(i.nextInteger());
+				} else {
+					throw new RuntimeException("Tag length is already specified.");
+				}
+				return true;
+			} else {
+				throw new RuntimeException("Tag length is not specified.");
+			}
+		})
+		.add("-help", (i) -> {
+			help();
+			return false;
+		})
+		.addAlias("-e", "-encrypt")
+		.addAlias("-d", "-decrypt")
+		.addAlias("-i", "-input")
+		.addAlias("-o", "-output")
+		.addAlias("-p", "-passphrase")
+		.addAlias("-k", "-key")
+		.addAlias("-v", "-iv")
+		.addAlias("-n", "-nonce")
+		.addAlias("-a", "-aad")
+		.addAlias("-T", "-taglength")
+		.addAlias("-h", "-help");
+		_digestOptionSet
+		.add("-input", "PATH", "specifies input file path\nreads from standard input if a hyphen is specified", (i) -> {
+			if (i.hasNext()) {
+				setInputPath(i.next());
+				return true;
+			} else {
+				throw new RuntimeException("Input file is not specified.");
+			}
+		})
+		.add("-output", "PATH", "specifies output file path\nwrites to standard output by default", (i) -> {
+			if (i.hasNext()) {
+				setOutputPath(i.next());
+				return true;
+			} else {
+				throw new RuntimeException("Output file is not specified.");
+			}
+		})
+		.add("-uppercase", "prints the result in uppercase", (i) -> {
+			setFlags(FLAG_UPPERCASE);
+			return true;
+		})
+		.add("-help", (i) -> {
+			help();
+			return false;
+		})
+		.addAlias("-i", "-input")
+		.addAlias("-o", "-output")
+		.addAlias("-u", "-uppercase")
+		.addAlias("-h", "-help");
+		CommandLineOptionSet.alignFormat(_optionSet, _cipherOptionSet, _digestOptionSet);
 	}
 
 	private void setTransformation(Algorithm algorithm, CipherMode mode, Padding padding, int keyLength) {
@@ -140,7 +410,7 @@ public class MyCryptographyUtilityApplication {
 		_key = value;
 	}
 
-	private void setIv(byte[] value) {
+	private void setIV(byte[] value) {
 		_iv = value;
 	}
 
@@ -152,7 +422,7 @@ public class MyCryptographyUtilityApplication {
 		return _aad != null;
 	}
 
-	private void setAad(byte[] value) {
+	private void setAAD(byte[] value) {
 		_aad = value;
 	}
 
@@ -193,18 +463,22 @@ public class MyCryptographyUtilityApplication {
 	}
 
 	public void run() throws Exception {
-		switch (_operationMode) {
-		case Cipher.ENCRYPT_MODE:
-			runInEncryptMode();
-			break;
-		case Cipher.DECRYPT_MODE:
-			runInDecryptMode();
-			break;
-		case DIGEST_MODE:
-			runInDigestMode();
-			break;
-		default:
-			throw new RuntimeException("Neither cipher nor digest is specified. Specify one of them at least.");
+		try {
+			switch (_operationMode) {
+			case Cipher.ENCRYPT_MODE:
+				runInEncryptMode();
+				break;
+			case Cipher.DECRYPT_MODE:
+				runInDecryptMode();
+				break;
+			case DIGEST_MODE:
+				runInDigestMode();
+				break;
+			default:
+				throw new RuntimeException("Operation is not specified. Specify -encrypt or -decrypt.");
+			}
+		} finally {
+			cleanup();
 		}
 	}
 
@@ -219,19 +493,19 @@ public class MyCryptographyUtilityApplication {
 			int n;
 			if (_nonce != null) {
 				out.write(_nonce);
-				outBytes += _nonce.length;
+				_outBytes += _nonce.length;
 			} else if (_iv != null) {
 				out.write(_iv);
-				outBytes += _iv.length;
+				_outBytes += _iv.length;
 			}
 			Cipher cipher = getCipher();
 			while ((n = in.read(buf)) >= 0) {
 				if (n > 0) {
-					inBytes += n;
+					_inBytes += n;
 					byte[] result = cipher.update(buf, 0, n);
 					if (result != null) {
 						out.write(result);
-						outBytes += result.length;
+						_outBytes += result.length;
 					}
 				}
 			}
@@ -239,15 +513,15 @@ public class MyCryptographyUtilityApplication {
 			byte[] result = cipher.doFinal();
 			if (result != null) {
 				out.write(result);
-				outBytes += result.length;
+				_outBytes += result.length;
 				if (_tag != null) {
 					storeLastBytes(result, result.length, _tag);
-					_info.printf("%10s %s\n", "TAG", HexString.toString(_tag));
+					_console.printf("%10s %s\n", "TAG", HexString.toString(_tag));
 				}
 			}
 			out.flush();
-			_info.printf("%16s in\n", TextHelpers.numberOfBytes(inBytes));
-			_info.printf("%16s out\n", TextHelpers.numberOfBytes(outBytes));
+			_console.printf("%16s in\n", TextHelpers.numberOfBytes(_inBytes));
+			_console.printf("%16s out\n", TextHelpers.numberOfBytes(_outBytes));
 			commitOutput(out);
 		} finally {
 			closeInput(in);
@@ -271,7 +545,7 @@ public class MyCryptographyUtilityApplication {
 					if (n != _nonceLength) {
 						throw new RuntimeException("Failed to read nonce.");
 					}
-					inBytes += n;
+					_inBytes += n;
 				}
 			} else if (_cipherMode.useIV()) {
 				if (_iv == null) {
@@ -280,20 +554,20 @@ public class MyCryptographyUtilityApplication {
 					if (n != _ivLength) {
 						throw new RuntimeException("Failed to read IV.");
 					}
-					inBytes += n;
+					_inBytes += n;
 				}
 			}
 			Cipher cipher = getCipher();
 			while ((n = in.read(buf)) >= 0) {
 				if (n > 0) {
-					inBytes += n;
+					_inBytes += n;
 					if (_tag != null) {
 						storeLastBytes(buf, n, _tag);
 					}
 					byte[] result = cipher.update(buf, 0, n);
 					if (result != null) {
 						out.write(result);
-						outBytes += result.length;
+						_outBytes += result.length;
 					}
 				}
 			}
@@ -301,14 +575,14 @@ public class MyCryptographyUtilityApplication {
 			byte[] result = cipher.doFinal();
 			if (result != null) {
 				out.write(result);
-				outBytes += result.length;
+				_outBytes += result.length;
 				if (_tag != null) {
-					_info.printf("%10s %s\n", "TAG", HexString.toString(_tag));
+					_console.printf("%10s %s\n", "TAG", HexString.toString(_tag));
 				}
 			}
 			out.flush();
-			_info.printf("%16s in\n", TextHelpers.numberOfBytes(inBytes));
-			_info.printf("%16s out\n", TextHelpers.numberOfBytes(outBytes));
+			_console.printf("%16s in\n", TextHelpers.numberOfBytes(_inBytes));
+			_console.printf("%16s out\n", TextHelpers.numberOfBytes(_outBytes));
 			commitOutput(out);
 		} finally {
 			closeInput(in);
@@ -416,9 +690,9 @@ public class MyCryptographyUtilityApplication {
 
 	private OutputStream openOutput() throws Exception {
 		OutputStream out;
-		if ("-".equals(_outFileName)) {
+		if (_outFileName == null || "-".equals(_outFileName)) {
 			out = System.out;
-			_info = System.err;
+			_console = System.err;
 		} else {
 			_outPath = Paths.get(_outFileName);
 			if (!checkFlags(FLAG_OVERWRITE) && Files.exists(_outPath)) {
@@ -427,7 +701,7 @@ public class MyCryptographyUtilityApplication {
 			_tmpPath = Paths.get(String.format("%s.%d", _outFileName, System.currentTimeMillis()));
 			out = Files.newOutputStream(_tmpPath);
 			setFlags(FLAG_OUT_TO_CLOSE);
-			_info = System.out;
+			_console = System.out;
 		}
 		return out;
 	}
@@ -478,8 +752,8 @@ public class MyCryptographyUtilityApplication {
 			IvParameterSpec ivSpec = new IvParameterSpec(_iv);
 			Cipher cipher = Cipher.getInstance(transformation());
 			cipher.init(_operationMode, keySpec, ivSpec);
-			_info.printf("%10s %s\n", "KEY", HexString.toString(_key));
-			_info.printf("%10s %s\n", "IV", HexString.toString(_iv));
+			_console.printf("%10s %s\n", "KEY", HexString.toString(_key));
+			_console.printf("%10s %s\n", "IV", HexString.toString(_iv));
 			return cipher;
 		} catch (Exception e) {
 			throw new RuntimeException(e.getMessage());
@@ -491,7 +765,7 @@ public class MyCryptographyUtilityApplication {
 			SecretKeySpec keySpec = new SecretKeySpec(_key, _algorithm.label());
 			Cipher cipher = Cipher.getInstance(transformation());
 			cipher.init(_operationMode, keySpec);
-			_info.printf("%10s %s\n", "KEY", HexString.toString(_key));
+			_console.printf("%10s %s\n", "KEY", HexString.toString(_key));
 			return cipher;
 		} catch (Exception e) {
 			throw new RuntimeException(e.getMessage());
@@ -507,11 +781,11 @@ public class MyCryptographyUtilityApplication {
 			GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(_tagLength * 8, _nonce);
 			Cipher cipher = Cipher.getInstance(transformation());
 			cipher.init(_operationMode, keySpec, gcmParameterSpec);
-			_info.printf("%10s %s\n", "KEY", HexString.toString(_key));
-			_info.printf("%10s %s\n", "NONCE", HexString.toString(_nonce));
+			_console.printf("%10s %s\n", "KEY", HexString.toString(_key));
+			_console.printf("%10s %s\n", "NONCE", HexString.toString(_nonce));
 			if (_aad != null) {
 				cipher.updateAAD(_aad);
-				_info.printf("%10s %s\n", "AAD", HexString.toString(_aad));
+				_console.printf("%10s %s\n", "AAD", HexString.toString(_aad));
 			}
 			_tag = new byte[_tagLength];
 			return cipher;
@@ -537,29 +811,8 @@ public class MyCryptographyUtilityApplication {
 	}
 
 	public void runInDigestMode() throws Exception {
-		if (hasKey()) {
-			throw new RuntimeException("Key cannot be specified for digest.");
-		}
-		if (hasPassphrase()) {
-			throw new RuntimeException("Passphrase cannot be specified for digest.");
-		}
-		if (hasIv()) {
-			throw new RuntimeException("IV cannot be specified for digest.");
-		}
-		if (hasNonce()) {
-			throw new RuntimeException("Nonce cannot be specified for digest.");
-		}
-		if (hasAAD()) {
-			throw new RuntimeException("AAD cannot be specified for digest.");
-		}
-		if (hasTagLength()) {
-			throw new RuntimeException("Tag length cannot be specified for digest.");
-		}
 		if (_inFileName == null) {
 			throw new RuntimeException("Input file path is not specified.");
-		}
-		if (_outFileName == null) {
-			_outFileName = "-";
 		}
 		InputStream in = null;
 		OutputStream out = null;
@@ -573,7 +826,13 @@ public class MyCryptographyUtilityApplication {
 				md.update(buffer, 0, n);
 			}
 			byte[] result = md.digest();
-			out.write(String.format("%s%s", HexString.toString(result).toLowerCase(), System.lineSeparator()).getBytes());
+			String resultString = HexString.toString(result);
+			if (checkFlags(FLAG_UPPERCASE)) {
+				resultString = resultString.toUpperCase();
+			} else {
+				resultString = resultString.toLowerCase();
+			}
+			out.write(String.format("%s%s", resultString, System.lineSeparator()).getBytes());
 			out.flush();
 			commitOutput(out);
 		} finally {
@@ -582,235 +841,8 @@ public class MyCryptographyUtilityApplication {
 		}
 	}
 
-	public CommandLineParameters commandLineParameters() {
-		return (new CommandLineParameters())
-				.add("aes-128-ecb", transformationDescription(Algorithm.AES, CipherMode.ECB, Padding.PKCS5, 128), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.ECB, Padding.PKCS5, AES_128_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-192-ecb", transformationDescription(Algorithm.AES, CipherMode.ECB, Padding.PKCS5, 192), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.ECB, Padding.PKCS5, AES_192_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-256-ecb", transformationDescription(Algorithm.AES, CipherMode.ECB, Padding.PKCS5, 256), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.ECB, Padding.PKCS5, AES_256_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-128-cbc", transformationDescription(Algorithm.AES, CipherMode.CBC, Padding.PKCS5, 128), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.CBC, Padding.PKCS5, AES_128_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-192-cbc", transformationDescription(Algorithm.AES, CipherMode.CBC, Padding.PKCS5, 192), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.CBC, Padding.PKCS5, AES_192_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-256-cbc", transformationDescription(Algorithm.AES, CipherMode.CBC, Padding.PKCS5, 256), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.CBC, Padding.PKCS5, AES_256_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-128-cfb", transformationDescription(Algorithm.AES, CipherMode.CFB, Padding.NONE, 128), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.CFB, Padding.NONE, AES_128_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-192-cfb", transformationDescription(Algorithm.AES, CipherMode.CFB, Padding.NONE, 192), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.CFB, Padding.NONE, AES_192_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-256-cfb", transformationDescription(Algorithm.AES, CipherMode.CFB, Padding.NONE, 256), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.CFB, Padding.NONE, AES_256_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-128-cfb8", transformationDescription(Algorithm.AES, CipherMode.CFB8, Padding.NONE, 128), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.CFB8, Padding.NONE, AES_128_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-192-cfb8", transformationDescription(Algorithm.AES, CipherMode.CFB8, Padding.NONE, 192), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.CFB8, Padding.NONE, AES_192_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-256-cfb8", transformationDescription(Algorithm.AES, CipherMode.CFB8, Padding.NONE, 256), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.CFB8, Padding.NONE, AES_256_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-128-ofb", transformationDescription(Algorithm.AES, CipherMode.OFB, Padding.NONE, 128), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.OFB, Padding.NONE, AES_128_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-192-ofb", transformationDescription(Algorithm.AES, CipherMode.OFB, Padding.NONE, 192), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.OFB, Padding.NONE, AES_192_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-256-ofb", transformationDescription(Algorithm.AES, CipherMode.OFB, Padding.NONE, 256), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.OFB, Padding.NONE, AES_256_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-128-ofb8", transformationDescription(Algorithm.AES, CipherMode.OFB8, Padding.NONE, 128), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.OFB8, Padding.NONE, AES_128_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-192-ofb8", transformationDescription(Algorithm.AES, CipherMode.OFB8, Padding.NONE, 192), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.OFB8, Padding.NONE, AES_192_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-256-ofb8", transformationDescription(Algorithm.AES, CipherMode.OFB8, Padding.NONE, 256), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.OFB8, Padding.NONE, AES_256_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-128-ctr", transformationDescription(Algorithm.AES, CipherMode.CTR, Padding.NONE, 128), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.CTR, Padding.NONE, AES_128_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-192-ctr", transformationDescription(Algorithm.AES, CipherMode.CTR, Padding.NONE, 192), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.CTR, Padding.NONE, AES_192_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-256-ctr", transformationDescription(Algorithm.AES, CipherMode.CTR, Padding.NONE, 256), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.CTR, Padding.NONE, AES_256_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-128-gcm", transformationDescription(Algorithm.AES, CipherMode.GCM, Padding.NONE, 128), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.GCM, Padding.NONE, AES_128_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-192-gcm", transformationDescription(Algorithm.AES, CipherMode.GCM, Padding.NONE, 192), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.GCM, Padding.NONE, AES_192_KEY_LENGTH);
-					return true;
-				})
-				.add("aes-256-gcm", transformationDescription(Algorithm.AES, CipherMode.GCM, Padding.NONE, 256), (p) -> {
-					setTransformation(Algorithm.AES, CipherMode.GCM, Padding.NONE, AES_256_KEY_LENGTH);
-					return true;
-				})
-				.add("md5", "digest: MD5 (16 bytes long)", (p) -> {
-					setDigestMode(Algorithm.MD5);
-					return true;
-				})
-				.add("sha1", "digest: SHA1 (20 bytes long)", (p) -> {
-					setDigestMode(Algorithm.SHA1);
-					return true;
-				})
-				.add("sha256", "digest: SHA256 (32 bytes long)", (p) -> {
-					setDigestMode(Algorithm.SHA256);
-					return true;
-				})
-				.add("sha384", "digest: SHA384 (48 bytes long)", (p) -> {
-					setDigestMode(Algorithm.SHA384);
-					return true;
-				})
-				.add("sha512", "digest: SHA512 (64 bytes long)", (p) -> {
-					setDigestMode(Algorithm.SHA512);
-					return true;
-				})
-				.add("-encrypt", "sets operation mode to encryption", (p) -> {
-					setOperation(Cipher.ENCRYPT_MODE);
-					return true;
-				})
-				.add("-decrypt", "sets operation mode to decryption", (p) -> {
-					setOperation(Cipher.DECRYPT_MODE);
-					return true;
-				})
-				.add("-input", "PATH", "specifies input file path\nreads from standard input if a hyphen is specified", (p) -> {
-					if (p.next()) {
-						setInputPath(p.argument());
-						return true;
-					} else {
-						throw new RuntimeException("Input file is not specified.");
-					}
-				})
-				.add("-output", "PATH", "specifies output file path\nwrites to standard output if a hyphen is specified", (p) -> {
-					if (p.next()) {
-						setOutputPath(p.argument());
-						return true;
-					} else {
-						throw new RuntimeException("Output file is not specified.");
-					}
-				})
-				.add("-passphrase", "TEXT", "specifies passphrase to generate key", (p) -> {
-					if (p.next()) {
-						if (!hasPassphrase()) {
-							setPassphrase(p.argument());
-							return true;
-						} else {
-							throw new RuntimeException("Private key is already specified.");
-						}
-					} else {
-						throw new RuntimeException("Key phrase is not specified.");
-					}
-				})
-				.add("-key", "HEX", "specifies private key", (p) -> {
-					if (p.next()) {
-						if (!hasKey()) {
-							setKey(p.binaryArgument());
-							return true;
-						} else {
-							throw new RuntimeException("Private key is already specified.");
-						}
-					} else {
-						throw new RuntimeException("Private key is not specified.");
-					}
-				})
-				.add("-iv", "HEX", "specifies initial vector", (p) -> {
-					if (p.next()) {
-						if (!hasIv()) {
-							setIv(p.binaryArgument());
-							return true;
-						} else {
-							throw new RuntimeException("Initial vector is already specified.");
-						}
-					} else {
-						throw new RuntimeException("Initial vector is not specified.");
-					}
-				})
-				.add("-nonce", "HEX", "specifies nonce for AEAD", (p) -> {
-					if (p.next()) {
-						if (!hasNonce()) {
-							setNonce(p.binaryArgument());
-							return true;
-						} else {
-							throw new RuntimeException("Nonce is already specified.");
-						}
-					} else {
-						throw new RuntimeException("Nonce is not specified.");
-					}
-				})
-				.add("-aad", "TEXT", "specifies additional authenticated data for AEAD", (p) -> {
-					if (p.next()) {
-						if (!hasAAD()) {
-							setAad(p.argument().getBytes());
-							return true;
-						} else {
-							throw new RuntimeException("Additional authentication data is already specified.");
-						}
-					} else {
-						throw new RuntimeException("Additional authentication data is not specified with text.");
-					}
-				})
-				.add("-taglength", "NUM", String.format("specifies tag length for AEAD\ndefault: gcm=%d", AES_GCM_TAG_LENGTH_DEFAULT), (p) -> {
-					if (p.next()) {
-						if (!hasTagLength()) {
-							setTagLength(p.intArgument());
-						} else {
-							throw new RuntimeException("Tag length is already specified.");
-						}
-						return true;
-					} else {
-						throw new RuntimeException("Tag length is not specified.");
-					}
-				})
-				.add("-help", "prints this message", (p) -> {
-					help(p);
-					return false;
-				})
-				.addAlias("-e", "-encrypt")
-				.addAlias("-d", "-decrypt")
-				.addAlias("-i", "-input")
-				.addAlias("-o", "-output")
-				.addAlias("-p", "-passphrase")
-				.addAlias("-k", "-key")
-				.addAlias("-v", "-iv")
-				.addAlias("-n", "-nonce")
-				.addAlias("-a", "-aad")
-				.addAlias("-T", "-taglength")
-				.addAlias("-h", "-help");
+	public CommandLineOptionSet commandLineOptionSet() {
+		return _optionSet;
 	}
 
 	private static String transformationDescription(Algorithm algorithm, CipherMode mode, Padding padding, int keyBits) {
@@ -826,36 +858,36 @@ public class MyCryptographyUtilityApplication {
 	private void cleanup() {
 		if (_tmpPath != null) {
 			try {
-				if (Files.exists(_tmpPath)) {
-					Files.delete(_tmpPath);
-				}
+				Files.deleteIfExists(_tmpPath);
 			} catch (Exception e) {
 				printError(e);
 			}
 		}
 	}
 
+	private void help() {
+		System.out.printf(DESCRIPTION, VERSION);
+		System.out.printf("\nSyntax:\n");
+		System.out.printf("  java -jar mycrypto.jar option...\n");
+		System.out.printf("\n%s", _optionSet);
+		System.out.printf("\n%s", _cipherOptionSet);
+		System.out.printf("\n%s", _digestOptionSet);
+	}
+
 	public static void main(String[] args) {
-		MyCryptographyUtilityApplication app = new MyCryptographyUtilityApplication();
 		try {
-			CommandLineParameters parameters = app.commandLineParameters();
+			MyCryptographyUtilityApplication app = new MyCryptographyUtilityApplication();
+			CommandLineOptionSet options = app.commandLineOptionSet();
 			if (args.length == 0) {
-				help(parameters);
-			} else if (parameters.process(args)) {
+				app.help();
+			} else if (options.process(args)) {
 				app.run();
 			}
 			System.exit(0);
 		} catch (Throwable t) {
 			printError(t);
 			System.exit(1);
-		} finally {
-			app.cleanup();
 		}
-	}
-
-	private static void help(CommandLineParameters parameters) {
-		System.out.printf(DESCRIPTION, VERSION);
-		System.out.printf("%s", parameters);
 	}
 
 	private static void printError(Throwable t) {
