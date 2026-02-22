@@ -192,6 +192,7 @@
     <ClInclude Include="..\src\main\cpp\AES.h" />
     <ClInclude Include="..\src\main\cpp\AESCCM.h" />
     <ClInclude Include="..\src\main\cpp\AESGCM.h" />
+    <ClInclude Include="..\src\main\cpp\ApplicationVersion.h" />
     <ClInclude Include="..\src\main\cpp\Array.h" />
     <ClInclude Include="..\src\main\cpp\ByteString.h" />
     <ClInclude Include="..\src\main\cpp\CipherPtr.h" />

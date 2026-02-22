@@ -230,5 +230,8 @@
     <ClInclude Include="..\src\main\cpp\CommandLineOption.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\main\cpp\ApplicationVersion.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
