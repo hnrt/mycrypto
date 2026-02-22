@@ -27,8 +27,6 @@ import com.hideakin.util.TextHelpers;
 
 public class MyCryptographyUtilityApplication {
 
-	public static final String VERSION = "0.8.0";
-
 	public static final String DESCRIPTION = "My Cryptography Utility version %s\n";
 
 	private static final int AES_256_KEY_LENGTH = 256 / 8;
@@ -866,7 +864,9 @@ public class MyCryptographyUtilityApplication {
 	}
 
 	private void help() {
-		System.out.printf(DESCRIPTION, VERSION);
+		// cf. maven-jar-plugin
+		String version = getClass().getPackage().getImplementationVersion();
+		System.out.printf(DESCRIPTION, version);
 		System.out.printf("\nSyntax:\n");
 		System.out.printf("  java -jar mycrypto.jar option...\n");
 		System.out.printf("\n%s", _optionSet);

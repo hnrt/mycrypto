@@ -14,7 +14,10 @@
 #include <string.h>
 #include <time.h>
 #include <stdexcept>
+#include "ApplicationVersion.h"
 
+
+#define APPLICATION_VERSION_HEADER "My Cryptography Utility version %s\n"
 
 #define BUFFER_SIZE 4096
 
@@ -1118,8 +1121,9 @@ void MyCryptographyUtilityApplication::ComputeDigest()
 void MyCryptographyUtilityApplication::Help(const char* arg0)
 {
 	arg0 = strchr(arg0, DIRECTORY_SEPARATOR_CHAR) ? strrchr(arg0, DIRECTORY_SEPARATOR_CHAR) + 1 : arg0;
-	fprintf(stdout, "Syntax:\n");
-	fprintf(stdout, "  %s options\n", arg0);
+	fprintf(stdout, APPLICATION_VERSION_HEADER, APPLICATION_VERSION);
+	fprintf(stdout, "\nSyntax:\n");
+	fprintf(stdout, "  %s option...\n", arg0);
 	fprintf(stdout, "\n%s", _optionSet.ToString().Ptr());
 	fprintf(stdout, "\n%s", _cipherOptionSet.ToString().Ptr());
 	fprintf(stdout, "\n%s", _digestOptionSet.ToString().Ptr());
