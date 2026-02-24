@@ -32,7 +32,7 @@ namespace hnrt
 		void OpenTemporary();
 		void Close();
 		size_t Read(void* ptr, size_t len);
-		void Write(void* ptr, size_t len);
+		void Write(const void* ptr, size_t len);
 		void Flush();
 		void Seek(ptrdiff_t offset, int origin);
 		void Rewind();

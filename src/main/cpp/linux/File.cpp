@@ -127,7 +127,7 @@ size_t File::Read(void* ptr, size_t len)
 }
 
 
-void File::Write(void* ptr, size_t len)
+void File::Write(const void* ptr, size_t len)
 {
 	size_t actual = fwrite(ptr, 1, len, _stream);
 	if (ferror(_stream))

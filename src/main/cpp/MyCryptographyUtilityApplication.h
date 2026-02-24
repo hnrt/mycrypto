@@ -63,6 +63,7 @@ namespace hnrt
 		bool SetAdditionalAuthenticatedData(CommandLineIterator& iterator);
 		bool SetNonceLength(CommandLineIterator& iterator);
 		bool SetTagLength(CommandLineIterator& iterator);
+		bool EnableUppercase(CommandLineIterator& iterator);
 		bool Help(CommandLineIterator& iterator);
 		bool Parse(int argc, char* argv[]);
 		void Run();
@@ -100,11 +101,14 @@ namespace hnrt
 		ByteString _nonce;
 		int _nonceLength;
 		int _tagLength;
+		int _flags;
 		FILE* _console;
 		CommandLineOptionSet _optionSet;
 		CommandLineOptionSet _cipherOptionSet;
 		CommandLineOptionSet _digestOptionSet;
 	};
 }
+
+#define FLAG_UPPERCASE (1<<0)
 
 #endif //!MYCRYPTOGRAPHYUTILITYAPPLICATION_H

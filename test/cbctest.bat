@@ -68,6 +68,11 @@
 %checkup% ..\plaintext2M.jpg tmp\plaintext2M-3.cbc
 @IF ERRORLEVEL 1 @EXIT /B 16
 
+%command% aes-256-cbc -e -i ..\plaintext2M.jpg -o tmp\ciphertext2M-4.cbc -p hohoho
+%command% aes-256-cbc -d -i tmp\ciphertext2M-4.cbc -o tmp\plaintext2M-4.cbc -p hohoho
+%checkup% ..\plaintext2M.jpg tmp\plaintext2M-4.cbc
+@IF ERRORLEVEL 1 @EXIT /B 17
+
 @ECHO AES-CBC LOOKS GOOD!
 
 @EXIT /B 0

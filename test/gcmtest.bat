@@ -35,6 +35,11 @@
   EXIT /B 7
 )
 
+%command% aes-256-gcm -e -i ..\plaintext2M.jpg -o tmp\ciphertext2M-8.gcm -p oops -a orz
+%command% aes-256-gcm -d -i tmp\ciphertext2M-8.gcm -o tmp\plaintext2M-8.gcm -p oops -a orz
+%checkup% ..\plaintext2M.jpg tmp\plaintext2M-8.gcm
+@IF ERRORLEVEL 1 @EXIT /B 8
+
 @ECHO AES-GCM LOOKS GOOD!
 
 @EXIT /B 0

@@ -39,6 +39,7 @@ MyCryptographyUtilityApplication::MyCryptographyUtilityApplication()
 	, _nonce()
 	, _nonceLength(0)
 	, _tagLength(0)
+	, _flags(0)
 	, _console(stdout)
 	, _optionSet("Options")
 	, _cipherOptionSet("Cipher options")
@@ -105,9 +106,11 @@ MyCryptographyUtilityApplication::MyCryptographyUtilityApplication()
 	_digestOptionSet
 		.Add("-input", "PATH", "specifies input file path\nreads from standard input if a hyphen is specified", &MyCryptographyUtilityApplication::SetInputPath)
 		.Add("-output", "PATH", "specifies output file path\nwrites to standard output by default", &MyCryptographyUtilityApplication::SetOutputPath)
+		.Add("-uppercase", NULL, "prints the result in uppercase", &MyCryptographyUtilityApplication::EnableUppercase)
 		.Add("-help", NULL, NULL, &MyCryptographyUtilityApplication::Help)
 		.AddAlias("-i", "-input")
 		.AddAlias("-o", "-output")
+		.AddAlias("-u", "-uppercase")
 		.AddAlias("-h", "-help");
 	CommandLineOptionSet::AlignFormat(&_optionSet, &_cipherOptionSet, &_digestOptionSet, nullptr);
 }
@@ -545,6 +548,14 @@ bool MyCryptographyUtilityApplication::SetTagLength(CommandLineIterator& iterato
 }
 
 
+bool MyCryptographyUtilityApplication::EnableUppercase(CommandLineIterator& iterator)
+{
+	DEBUG("#EnableUppercase\n");
+	_flags |= FLAG_UPPERCASE;
+	return true;
+}
+
+
 bool MyCryptographyUtilityApplication::Help(CommandLineIterator& iterator)
 {
 	return false;
@@ -571,7 +582,7 @@ void MyCryptographyUtilityApplication::Run()
 		ComputeDigest();
 		break;
 	default:
-		throw std::runtime_error("Neither cipher nor digest is specified. Specify one of them at least.");
+		throw std::runtime_error("Neither -encrypt nor -decrypt is specified. Specify one or the other.");
 	}
 }
 
@@ -619,8 +630,8 @@ void MyCryptographyUtilityApplication::Encrypt()
 	cipher.Initialize(_cipherMode, OperationMode::ENCRYPTION);
 
 	VerifyKey(cipher);
-
 	VerifyIV(cipher, true);
+	VerifyNonce(cipher, true);
 
 	File inputStream;
 	if (IsStandardInputMode())
@@ -740,8 +751,8 @@ void MyCryptographyUtilityApplication::Decrypt()
 	cipher.Initialize(_cipherMode, OperationMode::DECRYPTION);
 
 	VerifyKey(cipher);
-
 	VerifyIV(cipher);
+	VerifyNonce(cipher);
 
 	File inputStream;
 	if (IsStandardInputMode())
@@ -1113,8 +1124,25 @@ void MyCryptographyUtilityApplication::ComputeDigest()
 	}
 	DEBUG("#Read %d bytes\n", static_cast<int>(inputStream.Count()));
 	ByteString result = digest->Finalize();
-	String hex = String::Lowercase(String::Hex(result));
-	fprintf(stdout, "%s\n", hex.Ptr());
+	String hex = (_flags & FLAG_UPPERCASE) != 0 ? String::Uppercase(String::Hex(result)) : String::Lowercase(String::Hex(result));
+	if (_outputPath && !IsStandardOutputMode())
+	{
+		File outputStream;
+		outputStream.OpenForWrite(_temporaryPath);
+		outputStream.Write(hex.Ptr(), hex.Length());
+#if defined(LINUX)
+		outputStream.Write("\n", 1);
+#elif defined(WIN32)
+		outputStream.Write("\r\n", 2);
+#endif
+		outputStream.Flush();
+		outputStream.Close();
+		File::Rename(_temporaryPath, _outputPath);
+	}
+	else
+	{
+		fprintf(stdout, "%s\n", hex.Ptr());
+	}
 }
 
 
