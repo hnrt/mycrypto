@@ -19,7 +19,8 @@
 
 #define APPLICATION_VERSION_HEADER "My Cryptography Utility version %s\n"
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 4096ULL
+#define MAX_INPUT_SIZE (BUFFER_SIZE * 1024ULL * 256ULL)
 
 
 using namespace hnrt;
@@ -33,6 +34,8 @@ MyCryptographyUtilityApplication::MyCryptographyUtilityApplication()
 	, _outputPath()
 	, _temporaryPath()
 	, _passphrase()
+	, _ivPreferred()
+	, _noncePreferred()
 	, _aad()
 	, _key()
 	, _iv()
@@ -464,12 +467,12 @@ bool MyCryptographyUtilityApplication::SetIV(CommandLineIterator& iterator)
 	{
 		throw std::runtime_error("-iv: Value is missing.");
 	}
-	else if (_iv)
+	else if (_ivPreferred)
 	{
 		throw std::runtime_error("IV cannot be specified twice.");
 	}
-	_iv = ByteString::ParseHex(iterator.Next());
-	DEBUG("#SetIV(%s)\n", String::Hex(_iv).Ptr());
+	_ivPreferred = ByteString::ParseHex(iterator.Next());
+	DEBUG("#SetIV(%s)\n", String::Hex(_ivPreferred).Ptr());
 	return true;
 }
 
@@ -480,12 +483,12 @@ bool MyCryptographyUtilityApplication::SetNonce(CommandLineIterator& iterator)
 	{
 		throw std::runtime_error("-nonce: Value is missing.");
 	}
-	else if (_nonce)
+	else if (_noncePreferred)
 	{
 		throw std::runtime_error("Nonce cannot be specified twice.");
 	}
-	_nonce = ByteString::ParseHex(iterator.Next());
-	DEBUG("#SetNonce(%s)\n", String::Hex(_nonce).Ptr());
+	_noncePreferred = ByteString::ParseHex(iterator.Next());
+	DEBUG("#SetNonce(%s)\n", String::Hex(_noncePreferred).Ptr());
 	return true;
 }
 
@@ -626,17 +629,10 @@ void MyCryptographyUtilityApplication::Encrypt()
 
 	_console = IsStandardOutputMode() ? stderr : stdout;
 
-	CipherPtr cipher;
-	cipher.Initialize(_cipherMode, OperationMode::ENCRYPTION);
-
-	VerifyKey(cipher);
-	VerifyIV(cipher, true);
-	VerifyNonce(cipher, true);
-
 	File inputStream;
 	if (IsStandardInputMode())
 	{
-		inputStream.OpenForRead();
+		ReadOnceFromStandardInput(inputStream);
 	}
 	else
 	{
@@ -661,67 +657,83 @@ void MyCryptographyUtilityApplication::Encrypt()
 		outputStream.OpenForWrite(_temporaryPath);
 	}
 
-	if (cipher->GetNonceLength())
+	size_t inputLength = inputStream.Size();
+
+	while (inputLength)
 	{
-		if (_aad)
+		CipherPtr cipher;
+		cipher.Initialize(_cipherMode, OperationMode::ENCRYPTION);
+		VerifyKey(cipher);
+		VerifyIV(cipher, true);
+		VerifyNonce(cipher, true);
+
+		size_t payloadLength = inputLength < MAX_INPUT_SIZE ? inputLength : MAX_INPUT_SIZE;
+
+		inputLength -= payloadLength;
+
+		if (cipher->GetNonceLength())
 		{
-			cipher->SetKey(_key, _nonce, _aad.Ptr(), _aad.Length());
+			if (_aad)
+			{
+				cipher->SetKey(_key, _nonce, _aad.Ptr(), _aad.Length());
+			}
+			else
+			{
+				cipher->SetKey(_key, _nonce);
+			}
+			outputStream.Write(_nonce, _nonce.Length());
+		}
+		else if (cipher->GetIvLength())
+		{
+			cipher->SetKey(_key, _iv);
+			outputStream.Write(_iv, _iv.Length());
 		}
 		else
 		{
-			cipher->SetKey(_key, _nonce);
+			cipher->SetKey(_key);
 		}
-		outputStream.Write(_nonce, _nonce.Length());
-	}
-	else if (cipher->GetIvLength())
-	{
-		cipher->SetKey(_key, _iv);
-		outputStream.Write(_iv, _iv.Length());
-	}
-	else
-	{
-		cipher->SetKey(_key);
-	}
 
-	unsigned char plaintext[2][BUFFER_SIZE];
-	size_t current = 0;
-	size_t plaintextLength = inputStream.Read(plaintext[current], BUFFER_SIZE);
-	if (!plaintextLength)
-	{
-		throw std::runtime_error("Input file is empty. No content is to be encrypted.");
-	}
-	while (plaintextLength == BUFFER_SIZE)
-	{
-		plaintextLength = inputStream.Read(plaintext[current ^ 1], BUFFER_SIZE);
-		if (!plaintextLength)
+		unsigned char plaintext[BUFFER_SIZE];
+
+		while (BUFFER_SIZE < payloadLength)
 		{
-			plaintextLength = BUFFER_SIZE;
-			break;
+			size_t plaintextLength = inputStream.Read(plaintext, BUFFER_SIZE);
+			if (plaintextLength != BUFFER_SIZE)
+			{
+				throw std::runtime_error("Failed to read from input file.");
+			}
+			payloadLength -= BUFFER_SIZE;
+			ByteString ciphertext = cipher->Update(plaintext, BUFFER_SIZE);
+			if (ciphertext.Length() > 0)
+			{
+				outputStream.Write(ciphertext, ciphertext.Length());
+			}
 		}
-		ByteString ciphertext = cipher->Update(plaintext[current], BUFFER_SIZE);
+
+		size_t plaintextLength = inputStream.Read(plaintext, payloadLength);
+		if (plaintextLength != payloadLength)
+		{
+			throw std::runtime_error("Failed to read from input file.");
+		}
+		ByteString ciphertext = cipher->Finalize(plaintext, payloadLength);
 		if (ciphertext.Length() > 0)
 		{
 			outputStream.Write(ciphertext, ciphertext.Length());
 		}
-		current ^= 1;
-	}
-	ByteString ciphertext = cipher->Finalize(plaintext[current], plaintextLength);
-	if (ciphertext.Length() > 0)
-	{
-		outputStream.Write(ciphertext, ciphertext.Length());
-	}
-	ByteString tag;
-	if (cipher->GetTagLength())
-	{
-		tag = cipher->GetTag();
-		outputStream.Write(tag, tag.Length());
+
+		ByteString tag;
+		if (cipher->GetTagLength())
+		{
+			tag = cipher->GetTag();
+			outputStream.Write(tag, tag.Length());
+		}
+
+		PrintCipherResult(tag, inputStream, outputStream);
 	}
 
 	outputStream.Flush();
 	outputStream.Close();
 	inputStream.Close();
-
-	PrintCipherResult(tag, inputStream, outputStream);
 
 	if (_temporaryPath)
 	{
@@ -746,13 +758,6 @@ void MyCryptographyUtilityApplication::Decrypt()
 	}
 
 	_console = IsStandardOutputMode() ? stderr : stdout;
-
-	CipherPtr cipher;
-	cipher.Initialize(_cipherMode, OperationMode::DECRYPTION);
-
-	VerifyKey(cipher);
-	VerifyIV(cipher);
-	VerifyNonce(cipher);
 
 	File inputStream;
 	if (IsStandardInputMode())
@@ -783,97 +788,129 @@ void MyCryptographyUtilityApplication::Decrypt()
 	}
 
 	size_t inputLength = inputStream.Size();
-	size_t headerLength = _nonce ? 0 : _iv ? 0 : cipher->GetNonceLength() ? cipher->GetNonceLength() : cipher->GetIvLength();
-	size_t footerLength = cipher->GetTagLength();
-	size_t envelopeLength = headerLength + footerLength;
-	if (inputLength < envelopeLength)
+
+	while (inputLength)
 	{
-		throw std::runtime_error(String::Format("Input file is too short. Envelope=%zu Actual=%zu", envelopeLength, inputLength));
-	}
-	else if (inputLength == envelopeLength)
-	{
-		throw std::runtime_error("No encrypted content.");
-	}
-	size_t payloadLength = inputLength - envelopeLength;
-	ByteString tag(footerLength);
-	if (footerLength)
-	{
-		inputStream.Seek(-static_cast<ptrdiff_t>(footerLength), SEEK_END);
-		if (inputStream.Read(tag, tag.Length()) != footerLength)
+		CipherPtr cipher;
+		cipher.Initialize(_cipherMode, OperationMode::DECRYPTION);
+		VerifyKey(cipher);
+		VerifyIV(cipher);
+		VerifyNonce(cipher);
+
+		size_t headerLength = _noncePreferred ? 0 : _ivPreferred ? 0 : cipher->GetNonceLength() ? cipher->GetNonceLength() : cipher->GetIvLength();
+		size_t footerLength = cipher->GetTagLength();
+		size_t envelopeLength = headerLength + footerLength;
+		if (inputLength < envelopeLength)
 		{
-			throw std::runtime_error("Failed to load tag.");
+			throw std::runtime_error(String::Format("Input file is too short. Envelope=%zu Actual=%zu", envelopeLength, inputLength));
 		}
-		inputStream.Rewind();
-	}
-	if (headerLength)
-	{
+		else if (inputLength == envelopeLength)
+		{
+			throw std::runtime_error("No encrypted content.");
+		}
+		size_t payloadLength = inputLength - envelopeLength;
+		if (payloadLength > MAX_INPUT_SIZE)
+		{
+			payloadLength = MAX_INPUT_SIZE;
+		}
+
+		inputLength -= envelopeLength + payloadLength;
+
 		ByteString header(headerLength);
-		if (inputStream.Read(header, header.Length()) != header.Length())
+		if (headerLength)
 		{
-			throw std::runtime_error(cipher->GetNonceLength() ? "Failed to load nonce." : "Failed to load IV.");
+			if (inputStream.Read(header, header.Length()) != header.Length())
+			{
+				throw std::runtime_error(cipher->GetNonceLength() ? "Failed to load nonce." : "Failed to load IV.");
+			}
+			else if (cipher->GetNonceLength())
+			{
+				_nonce = header;
+			}
+			else if (cipher->GetIvLength())
+			{
+				_iv = header;
+			}
 		}
-		else if (cipher->GetNonceLength())
+		else if (_noncePreferred)
 		{
-			_nonce = header;
+			_nonce = _noncePreferred;
+		}
+		else if (_ivPreferred)
+		{
+			_iv = _ivPreferred;
+		}
+
+		ByteString tag(footerLength);
+		if (footerLength)
+		{
+			inputStream.Seek(static_cast<ptrdiff_t>(payloadLength), SEEK_CUR);
+			if (inputStream.Read(tag, tag.Length()) != footerLength)
+			{
+				throw std::runtime_error("Failed to load tag.");
+			}
+			inputStream.Seek(-static_cast<ptrdiff_t>(payloadLength + footerLength), SEEK_CUR);
+		}
+
+		if (cipher->GetNonceLength())
+		{
+			if (_aad)
+			{
+				cipher->SetKey(_key, _nonce, tag, _aad, _aad.Length());
+			}
+			else
+			{
+				cipher->SetKey(_key, _nonce, tag);
+			}
+		}
+		else if (cipher->GetIvLength())
+		{
+			cipher->SetKey(_key, _iv);
 		}
 		else
 		{
-			_iv = header;
+			cipher->SetKey(_key);
 		}
-	}
 
-	if (cipher->GetNonceLength())
-	{
-		if (_aad)
-		{
-			cipher->SetKey(_key, _nonce, tag, _aad, _aad.Length());
-		}
-		else
-		{
-			cipher->SetKey(_key, _nonce, tag);
-		}
-	}
-	else if (cipher->GetIvLength())
-	{
-		cipher->SetKey(_key, _iv);
-	}
-	else
-	{
-		cipher->SetKey(_key);
-	}
+		unsigned char ciphertext[BUFFER_SIZE];
 
-	size_t remaining = payloadLength;
-	unsigned char ciphertext[BUFFER_SIZE];
-	while (BUFFER_SIZE < remaining)
-	{
-		size_t ciphertextLength = inputStream.Read(ciphertext, BUFFER_SIZE);
-		if (ciphertextLength < BUFFER_SIZE)
+		while (BUFFER_SIZE < payloadLength)
+		{
+			size_t ciphertextLength = inputStream.Read(ciphertext, BUFFER_SIZE);
+			if (ciphertextLength != BUFFER_SIZE)
+			{
+				throw std::runtime_error("Failed to read from input file.");
+			}
+			ByteString plaintext = cipher->Update(ciphertext, BUFFER_SIZE);
+			if (plaintext.Length() > 0)
+			{
+				outputStream.Write(plaintext, plaintext.Length());
+			}
+			payloadLength -= BUFFER_SIZE;
+		}
+
+		size_t ciphertextLength = inputStream.Read(ciphertext, payloadLength);
+		if (ciphertextLength != payloadLength)
 		{
 			throw std::runtime_error("Failed to read from input file.");
 		}
-		ByteString plaintext = cipher->Update(ciphertext, BUFFER_SIZE);
+		ByteString plaintext = cipher->Finalize(ciphertext, payloadLength);
 		if (plaintext.Length() > 0)
 		{
 			outputStream.Write(plaintext, plaintext.Length());
 		}
-		remaining -= BUFFER_SIZE;
-	}
-	size_t ciphertextLength = inputStream.Read(ciphertext, remaining);
-	if (ciphertextLength < remaining)
-	{
-		throw std::runtime_error("Failed to read from input file.");
-	}
-	ByteString plaintext = cipher->Finalize(ciphertext, remaining);
-	if (plaintext.Length() > 0)
-	{
-		outputStream.Write(plaintext, plaintext.Length());
+
+		PrintCipherResult(tag, inputStream, outputStream);
+
+		if (footerLength)
+		{
+			inputStream.Seek(static_cast<ptrdiff_t>(footerLength), SEEK_CUR);
+		}
 	}
 
 	outputStream.Flush();
 	outputStream.Close();
 	inputStream.Close();
-
-	PrintCipherResult(tag, inputStream, outputStream);
 
 	if (_temporaryPath)
 	{
@@ -907,8 +944,9 @@ void MyCryptographyUtilityApplication::VerifyIV(CipherPtr& cipher, bool generate
 {
 	if (cipher->GetIvLength())
 	{
-		if (_iv)
+		if (_ivPreferred)
 		{
+			_iv = _ivPreferred;
 			if (static_cast<size_t>(cipher->GetIvLength()) != _iv.Length())
 			{
 				throw std::runtime_error(String::Format("IV is not valid in length. Expected=%d Actual=%zu", cipher->GetIvLength(), _iv.Length()));
@@ -934,8 +972,9 @@ void MyCryptographyUtilityApplication::VerifyNonce(CipherPtr& cipher, bool gener
 		{
 			cipher->SetNonceLength(_nonceLength);
 		}
-		if (_nonce)
+		if (_noncePreferred)
 		{
+			_nonce = _noncePreferred;
 			if (static_cast<size_t>(cipher->GetNonceLength()) != _nonce.Length())
 			{
 				throw std::runtime_error(String::Format("Nonce is not valid in length. Expected=%d Actual=%zu", cipher->GetNonceLength(), _nonce.Length()));
@@ -1011,6 +1050,7 @@ void MyCryptographyUtilityApplication::ComputeKey(const CipherPtr& cipher)
 		sha256.Initialize(DigestMode::SHA256);
 		sha256->Update((const char*)_passphrase, _passphrase.Length());
 		_key = sha256->Finalize();
+		_passphrase = String();
 	}
 	if (_key.Length() < keyLength)
 	{

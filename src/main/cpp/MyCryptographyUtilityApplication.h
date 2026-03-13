@@ -95,6 +95,8 @@ namespace hnrt
 		String _outputPath;
 		String _temporaryPath;
 		String _passphrase;
+		ByteString _ivPreferred;
+		ByteString _noncePreferred;
 		String _aad;
 		ByteString _key;
 		ByteString _iv;
