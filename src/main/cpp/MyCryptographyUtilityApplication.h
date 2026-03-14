@@ -56,10 +56,11 @@ namespace hnrt
 		bool SetDecryptionMode(CommandLineIterator& iterator);
 		bool SetInputPath(CommandLineIterator& iterator);
 		bool SetOutputPath(CommandLineIterator& iterator);
+		bool SetPassphrase(CommandLineIterator& iterator);
+		bool SetPassphrasePath(CommandLineIterator& iterator);
 		bool SetKey(CommandLineIterator& iterator);
 		bool SetIV(CommandLineIterator& iterator);
 		bool SetNonce(CommandLineIterator& iterator);
-		bool SetPassphrase(CommandLineIterator& iterator);
 		bool SetAdditionalAuthenticatedData(CommandLineIterator& iterator);
 		bool SetNonceLength(CommandLineIterator& iterator);
 		bool SetTagLength(CommandLineIterator& iterator);
@@ -74,6 +75,7 @@ namespace hnrt
 
 		void SetCipherMode(CipherMode mode);
 		void SetDigestMode(DigestMode mode);
+		void VerifyIO();
 		bool IsStandardInputMode() const;
 		bool IsStandardOutputMode() const;
 		void Encrypt();
@@ -95,6 +97,7 @@ namespace hnrt
 		String _outputPath;
 		String _temporaryPath;
 		String _passphrase;
+		String _passphrasePath;
 		ByteString _ivPreferred;
 		ByteString _noncePreferred;
 		String _aad;

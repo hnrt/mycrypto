@@ -34,6 +34,7 @@ MyCryptographyUtilityApplication::MyCryptographyUtilityApplication()
 	, _outputPath()
 	, _temporaryPath()
 	, _passphrase()
+	, _passphrasePath()
 	, _ivPreferred()
 	, _noncePreferred()
 	, _aad()
@@ -87,6 +88,7 @@ MyCryptographyUtilityApplication::MyCryptographyUtilityApplication()
 		.Add("-input", "PATH", "specifies input file path\nreads from standard input if a hyphen is specified", &MyCryptographyUtilityApplication::SetInputPath)
 		.Add("-output", "PATH", "specifies output file path\nwrites to standard output if a hyphen is specified", &MyCryptographyUtilityApplication::SetOutputPath)
 		.Add("-passphrase", "TEXT", "specifies passphrase to generate key", &MyCryptographyUtilityApplication::SetPassphrase)
+		.Add("-ppfile", "PATH", "specifies passphrase file path\nreads from standard input if a hyphen is specified", &MyCryptographyUtilityApplication::SetPassphrasePath)
 		.Add("-key", "HEX", "specifies private key", &MyCryptographyUtilityApplication::SetKey)
 		.Add("-iv", "HEX", "specifies initial vector", &MyCryptographyUtilityApplication::SetIV)
 		.Add("-nonce", "HEX", "specifies nonce for AEAD", &MyCryptographyUtilityApplication::SetNonce)
@@ -99,6 +101,7 @@ MyCryptographyUtilityApplication::MyCryptographyUtilityApplication()
 		.AddAlias("-i", "-input")
 		.AddAlias("-o", "-output")
 		.AddAlias("-p", "-passphrase")
+		.AddAlias("-P", "-ppfile")
 		.AddAlias("-k", "-key")
 		.AddAlias("-v", "-iv")
 		.AddAlias("-n", "-nonce")
@@ -397,7 +400,7 @@ bool MyCryptographyUtilityApplication::SetInputPath(CommandLineIterator& iterato
 {
 	if (!iterator.HasNext())
 	{
-		throw std::runtime_error("-input: Value is missing.");
+		throw std::runtime_error("-input: Path is missing.");
 	}
 	else if (_inputPath)
 	{
@@ -413,7 +416,7 @@ bool MyCryptographyUtilityApplication::SetOutputPath(CommandLineIterator& iterat
 {
 	if (!iterator.HasNext())
 	{
-		throw std::runtime_error("-output: Value is missing.");
+		throw std::runtime_error("-output: Path is missing.");
 	}
 	else if (_outputPath)
 	{
@@ -441,6 +444,22 @@ bool MyCryptographyUtilityApplication::SetPassphrase(CommandLineIterator& iterat
 	}
 	_passphrase = iterator.Next();
 	DEBUG("#SetPassphrase(%s)\n", _passphrase.Ptr());
+	return true;
+}
+
+
+bool MyCryptographyUtilityApplication::SetPassphrasePath(CommandLineIterator& iterator)
+{
+	if (!iterator.HasNext())
+	{
+		throw std::runtime_error("-ppfile: Path is missing.");
+	}
+	else if (_passphrasePath)
+	{
+		throw std::runtime_error("Passphrase file cannot be specified twice.");
+	}
+	_passphrasePath = iterator.Next();
+	DEBUG("#SetPassphrasePath(%s)\n", _passphrasePath.Ptr());
 	return true;
 }
 
@@ -618,16 +637,8 @@ void MyCryptographyUtilityApplication::Encrypt()
 	{
 		throw std::runtime_error("Cipher is not specified.");
 	}
-	if (!_inputPath)
-	{
-		throw std::runtime_error("Input file path is not specified.");
-	}
-	if (!_outputPath)
-	{
-		throw std::runtime_error("Output file path is not specified.");
-	}
 
-	_console = IsStandardOutputMode() ? stderr : stdout;
+	VerifyIO();
 
 	File inputStream;
 	if (IsStandardInputMode())
@@ -748,16 +759,8 @@ void MyCryptographyUtilityApplication::Decrypt()
 	{
 		throw std::runtime_error("Cipher is not specified.");
 	}
-	if (!_inputPath)
-	{
-		throw std::runtime_error("Input file path is not specified.");
-	}
-	if (!_outputPath)
-	{
-		throw std::runtime_error("Output file path is not specified.");
-	}
 
-	_console = IsStandardOutputMode() ? stderr : stdout;
+	VerifyIO();
 
 	File inputStream;
 	if (IsStandardInputMode())
@@ -919,18 +922,83 @@ void MyCryptographyUtilityApplication::Decrypt()
 }
 
 
+void MyCryptographyUtilityApplication::VerifyIO()
+{
+	if (!_inputPath)
+	{
+		throw std::runtime_error("Input file path is not specified.");
+	}
+	if (!_outputPath)
+	{
+		throw std::runtime_error("Output file path is not specified.");
+	}
+	int count = 0;
+	if (_inputPath && !strcmp(_inputPath, "-"))
+	{
+		count++;
+	}
+	if (_passphrasePath && !strcmp(_passphrasePath, "-"))
+	{
+		count++;
+	}
+	if (count > 1)
+	{
+		throw std::runtime_error("Only one resource can read from standard input.");
+	}
+	_console = IsStandardOutputMode() ? stderr : stdout;
+}
+
+
 void MyCryptographyUtilityApplication::VerifyKey(const CipherPtr& cipher)
 {
-	if (!_key && !_passphrase)
+	if (!_key && !_passphrase && !_passphrasePath)
 	{
 		throw std::runtime_error("Neither key nor passphrase is specified. Specify one or the other.");
 	}
-	else if (_key && _passphrase)
+	else if (_key && (_passphrase || _passphrasePath))
 	{
 		throw std::runtime_error("Both key and passphrase are specified at the same time. Specify one or the other.");
 	}
+	else if (_passphrase && _passphrasePath)
+	{
+		throw std::runtime_error("Both passphrase and passphrase file path are specified at the same time. Specify one or the other.");
+	}
 	else if (_passphrase)
 	{
+		ComputeKey(cipher);
+	}
+	else if (_passphrasePath)
+	{
+		_passphrase = String();
+		File stdinStream;
+		if (!strcmp(_passphrasePath, "-"))
+		{
+			stdinStream.OpenForRead();
+		}
+		else
+		{
+			if (!File::Exists(_passphrasePath))
+			{
+				throw std::runtime_error(String::Format("Passphrase file is not found: %s", _passphrasePath.Ptr()));
+			}
+			stdinStream.OpenForRead(_passphrasePath);
+		}
+		while (true)
+		{
+			char buffer[BUFFER_SIZE];
+			size_t length = stdinStream.Read(buffer, BUFFER_SIZE);
+			DEBUG("#Read from %s: %zu\n", stdinStream.Path(), length);
+			if (length > 0)
+			{
+				_passphrase += String(buffer, length);
+			}
+			if (length < BUFFER_SIZE)
+			{
+				break;
+			}
+		}
+		stdinStream.Close();
+		_passphrasePath = String();
 		ComputeKey(cipher);
 	}
 	else if (static_cast<size_t>(cipher->GetKeyLength()) != _key.Length())
