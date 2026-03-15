@@ -57,6 +57,7 @@ public class MyCryptographyUtilityApplication {
 	private int _nonceLength = 0;
 	private int _tagLength = 0;
 	private String _passphrase;
+	private String _ppFileName;
 	private byte[] _key;
 	private byte[] _iv;
 	private byte[] _nonce;
@@ -240,10 +241,22 @@ public class MyCryptographyUtilityApplication {
 					setPassphrase(i.next());
 					return true;
 				} else {
-					throw new RuntimeException("Private key is already specified.");
+					throw new RuntimeException("Passphrase is already specified.");
 				}
 			} else {
-				throw new RuntimeException("Key phrase is not specified.");
+				throw new RuntimeException("Passphrase is not specified.");
+			}
+		})
+		.add("-ppfile", "PATH", "specifies passphrase file path\nreads from standard input if a hyphen is specified", (i) -> {
+			if (i.hasNext()) {
+				if (!hasPassphrasePath()) {
+					setPassphrasePath(i.next());
+					return true;
+				} else {
+					throw new RuntimeException("Passphrase file is already specified.");
+				}
+			} else {
+				throw new RuntimeException("Passphrase is not specified.");
 			}
 		})
 		.add("-key", "HEX", "specifies private key", (i) -> {
@@ -315,6 +328,7 @@ public class MyCryptographyUtilityApplication {
 		.addAlias("-i", "-input")
 		.addAlias("-o", "-output")
 		.addAlias("-p", "-passphrase")
+		.addAlias("-P", "-ppfile")
 		.addAlias("-k", "-key")
 		.addAlias("-v", "-iv")
 		.addAlias("-n", "-nonce")
@@ -388,6 +402,10 @@ public class MyCryptographyUtilityApplication {
 		return _passphrase != null;
 	}
 
+	private boolean hasPassphrasePath() {
+		return _ppFileName != null;
+	}
+
 	private boolean hasKey() {
 		return _key != null;
 	}
@@ -402,6 +420,10 @@ public class MyCryptographyUtilityApplication {
 
 	private void setPassphrase(String value) {
 		_passphrase = value;
+	}
+
+	private void setPassphrasePath(String fileName) {
+		_ppFileName = fileName;
 	}
 
 	private void setKey(byte[] value) {
@@ -605,15 +627,37 @@ public class MyCryptographyUtilityApplication {
 		if (_outFileName == null) {
 			throw new RuntimeException("Output file path is not specified.");
 		}
+		if ("-".equals(_inFileName) && "-".equals(_ppFileName)) {
+			throw new RuntimeException("Both input data and passphrase are specified to be read from standard input.");
+		}
 	}
 
 	private void verifyKey() throws Exception {
-		if (!hasKey() && !hasPassphrase()) {
+		if (!hasKey() && !hasPassphrase() && !hasPassphrasePath()) {
 			throw new RuntimeException("Neither key nor passphrase is specified. Specify one or the other.");
-		} else if (hasKey() && hasPassphrase()) {
+		} else if (hasKey() && (hasPassphrase() || hasPassphrasePath())) {
 			throw new RuntimeException("Both key and passphrase are specified at the same time. Specify one or the other.");
+		} else if (hasPassphrase() && hasPassphrasePath()) {
+			throw new RuntimeException("Both passphrase and file path are specified at the same time. Specify one or the other.");
 		} else if (hasPassphrase()) {
 			_key = adjustLength(generate32Bytes(_passphrase), _keyLength);
+			_passphrase = null;
+		} else if (hasPassphrasePath()) {
+			InputStream in;
+			if ("-".equals(_ppFileName)) {
+				in = System.in;
+			} else {
+				Path path = Paths.get(_ppFileName);
+				if (!Files.exists(path)) {
+					throw new RuntimeException("Passphrase file is not found.");
+				}
+				in = Files.newInputStream(path);
+			}
+			byte[] data = in.readAllBytes();
+			_passphrase = new String(data);
+			_key = adjustLength(generate32Bytes(_passphrase), _keyLength);
+			_passphrase = null;
+			_ppFileName = null;
 		} else if (_key.length != _keyLength) {
 			throw new RuntimeException(String.format("Key is not valid in length. Expected=%d Actual=%d", _keyLength, _key.length));
 		}
@@ -642,7 +686,6 @@ public class MyCryptographyUtilityApplication {
 			} else if (generateIfNotSpecified) {
 				_nonce = adjustLength(generate32Bytes(null), _nonceLength);
 			}
-			
 		} else if (hasNonce()) {
 			throw new RuntimeException("Nonce cannot be specified for the target cipher.");
 		} else if (hasAAD()) {
