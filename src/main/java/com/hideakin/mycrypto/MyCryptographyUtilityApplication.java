@@ -551,6 +551,8 @@ public class MyCryptographyUtilityApplication {
 				out.flush();
 				_console.printf("%16s in\n", TextHelpers.numberOfBytes(_inBytes));
 				_console.printf("%16s out\n", TextHelpers.numberOfBytes(_outBytes));
+				_nonce = null;
+				_iv = null;
 			} while (!eof);
 			commitOutput(out);
 			closeInput(in);
@@ -619,6 +621,8 @@ public class MyCryptographyUtilityApplication {
 				out.flush();
 				_console.printf("%16s in\n", TextHelpers.numberOfBytes(_inBytes));
 				_console.printf("%16s out\n", TextHelpers.numberOfBytes(_outBytes));
+				_nonce = null;
+				_iv = null;
 			} while (!eof);
 			commitOutput(out);
 			closeInput(in);
