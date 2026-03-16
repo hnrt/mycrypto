@@ -592,7 +592,7 @@ public class MyCryptographyUtilityApplication {
 					}
 				}
 				Cipher cipher = getCipher();
-				int remaining = MAX_INPUT_LENGTH + (_cipherMode.usePadding() ? AES_BLOCK_LENGTH : 0);
+				int remaining = MAX_INPUT_LENGTH + (_cipherMode.useNonce() ? _tagLength : _cipherMode.usePadding() ? AES_BLOCK_LENGTH : 0);
 				while (remaining > 0 && (n = in.read(buf, 0, remaining < BUFFER_LENGTH ? remaining : BUFFER_LENGTH)) >= 0) {
 					if (n > 0) {
 						remaining -= n;
