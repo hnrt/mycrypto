@@ -40,4 +40,8 @@ public enum CipherMode {
 		return _useNonce;
 	}
 
+	public boolean usePadding() {
+		return _label.equals(CBC._label) || _label.equals(ECB._label);
+	}
+
 }

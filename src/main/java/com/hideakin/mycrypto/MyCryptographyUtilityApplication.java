@@ -32,6 +32,7 @@ public class MyCryptographyUtilityApplication {
 	private static final int AES_256_KEY_LENGTH = 256 / 8;
 	private static final int AES_192_KEY_LENGTH = 192 / 8;
 	private static final int AES_128_KEY_LENGTH = 128 / 8;
+	private static final int AES_BLOCK_LENGTH = 16;
 	private static final int AES_IV_LENGTH = 16;
 	private static final int AES_GCM_NONCE_LENGTH = 12;
 	private static final int AES_GCM_TAG_LENGTH_DEFAULT = 16;
@@ -44,6 +45,9 @@ public class MyCryptographyUtilityApplication {
 	private static final int FLAG_UPPERCASE = 1 << 16;
 
 	private static final int DIGEST_MODE = 999;
+
+	private static final int BUFFER_LENGTH = 8192;
+	private static final int MAX_INPUT_LENGTH = BUFFER_LENGTH * 131072;
 
 	private final CommandLineOptionSet _optionSet = new CommandLineOptionSet("Options");
 	private final CommandLineOptionSet _cipherOptionSet = new CommandLineOptionSet("Cipher options");
@@ -503,118 +507,125 @@ public class MyCryptographyUtilityApplication {
 	}
 
 	public void runInEncryptMode() throws Exception {
-		verifyParameters(true);
+		verifyCommon();
 		InputStream in = null;
 		OutputStream out = null;
 		try {
 			in = openInput();
 			out = openOutput();
-			byte[] buf = new byte[8192];
+			boolean eof = false;
+			byte[] buf = new byte[BUFFER_LENGTH];
 			int n;
-			if (_nonce != null) {
-				out.write(_nonce);
-				_outBytes += _nonce.length;
-			} else if (_iv != null) {
-				out.write(_iv);
-				_outBytes += _iv.length;
-			}
-			Cipher cipher = getCipher();
-			while ((n = in.read(buf)) >= 0) {
-				if (n > 0) {
-					_inBytes += n;
-					byte[] result = cipher.update(buf, 0, n);
-					if (result != null) {
-						out.write(result);
-						_outBytes += result.length;
+			do {
+				verifyParameters(true);
+				if (_nonce != null) {
+					out.write(_nonce);
+					_outBytes += _nonce.length;
+				} else if (_iv != null) {
+					out.write(_iv);
+					_outBytes += _iv.length;
+				}
+				Cipher cipher = getCipher();
+				int remaining = MAX_INPUT_LENGTH;
+				while (remaining > 0 && (n = in.read(buf, 0, remaining < BUFFER_LENGTH ? remaining : BUFFER_LENGTH)) >= 0) {
+					if (n > 0) {
+						remaining -= n;
+						_inBytes += n;
+						byte[] result = cipher.update(buf, 0, n);
+						if (result != null) {
+							out.write(result);
+							_outBytes += result.length;
+						}
 					}
 				}
-			}
-			closeInput(in);
-			byte[] result = cipher.doFinal();
-			if (result != null) {
-				out.write(result);
-				_outBytes += result.length;
-				if (_tag != null) {
-					storeLastBytes(result, result.length, _tag);
-					_console.printf("%10s %s\n", "TAG", HexString.toString(_tag));
+				eof = remaining > 0;
+				byte[] result = cipher.doFinal();
+				if (result != null) {
+					out.write(result);
+					_outBytes += result.length;
+					if (_tag != null) {
+						storeLastBytes(result, result.length, _tag);
+						_console.printf("%10s %s\n", "TAG", HexString.toString(_tag));
+					}
 				}
-			}
-			out.flush();
-			_console.printf("%16s in\n", TextHelpers.numberOfBytes(_inBytes));
-			_console.printf("%16s out\n", TextHelpers.numberOfBytes(_outBytes));
+				out.flush();
+				_console.printf("%16s in\n", TextHelpers.numberOfBytes(_inBytes));
+				_console.printf("%16s out\n", TextHelpers.numberOfBytes(_outBytes));
+			} while (!eof);
 			commitOutput(out);
-		} finally {
 			closeInput(in);
+		} finally {
 			closeOutput(out);
+			closeInput(in);
 		}
 	}
 
 	public void runInDecryptMode() throws Exception {
-		verifyParameters(false);
+		verifyCommon();
 		InputStream in = null;
 		OutputStream out = null;
 		try {
 			in = openInput();
 			out = openOutput();
-			byte[] buf = new byte[8192];
+			boolean eof = false;
+			byte[] buf = new byte[BUFFER_LENGTH];
 			int n;
-			if (_cipherMode.useNonce()) {
-				if (_nonce == null) {
-					_nonce = new byte[_nonceLength];
-					n = in.read(_nonce);
-					if (n != _nonceLength) {
-						throw new RuntimeException("Failed to read nonce.");
+			do {
+				verifyParameters(false);
+				if (_cipherMode.useNonce()) {
+					if (_nonce == null) {
+						_nonce = new byte[_nonceLength];
+						n = in.read(_nonce);
+						if (n != _nonceLength) {
+							throw new RuntimeException("Failed to read nonce.");
+						}
+						_inBytes += n;
 					}
-					_inBytes += n;
-				}
-			} else if (_cipherMode.useIV()) {
-				if (_iv == null) {
-					_iv = new byte[_ivLength];
-					n = in.read(_iv);
-					if (n != _ivLength) {
-						throw new RuntimeException("Failed to read IV.");
+				} else if (_cipherMode.useIV()) {
+					if (_iv == null) {
+						_iv = new byte[_ivLength];
+						n = in.read(_iv);
+						if (n != _ivLength) {
+							throw new RuntimeException("Failed to read IV.");
+						}
+						_inBytes += n;
 					}
-					_inBytes += n;
 				}
-			}
-			Cipher cipher = getCipher();
-			while ((n = in.read(buf)) >= 0) {
-				if (n > 0) {
-					_inBytes += n;
+				Cipher cipher = getCipher();
+				int remaining = MAX_INPUT_LENGTH + (_cipherMode.usePadding() ? AES_BLOCK_LENGTH : 0);
+				while (remaining > 0 && (n = in.read(buf, 0, remaining < BUFFER_LENGTH ? remaining : BUFFER_LENGTH)) >= 0) {
+					if (n > 0) {
+						remaining -= n;
+						_inBytes += n;
+						if (_tag != null) {
+							storeLastBytes(buf, n, _tag);
+						}
+						byte[] result = cipher.update(buf, 0, n);
+						if (result != null) {
+							out.write(result);
+							_outBytes += result.length;
+						}
+					}
+				}
+				eof = remaining > 0;
+				byte[] result = cipher.doFinal();
+				if (result != null) {
+					out.write(result);
+					_outBytes += result.length;
 					if (_tag != null) {
-						storeLastBytes(buf, n, _tag);
-					}
-					byte[] result = cipher.update(buf, 0, n);
-					if (result != null) {
-						out.write(result);
-						_outBytes += result.length;
+						_console.printf("%10s %s\n", "TAG", HexString.toString(_tag));
 					}
 				}
-			}
-			closeInput(in);
-			byte[] result = cipher.doFinal();
-			if (result != null) {
-				out.write(result);
-				_outBytes += result.length;
-				if (_tag != null) {
-					_console.printf("%10s %s\n", "TAG", HexString.toString(_tag));
-				}
-			}
-			out.flush();
-			_console.printf("%16s in\n", TextHelpers.numberOfBytes(_inBytes));
-			_console.printf("%16s out\n", TextHelpers.numberOfBytes(_outBytes));
+				out.flush();
+				_console.printf("%16s in\n", TextHelpers.numberOfBytes(_inBytes));
+				_console.printf("%16s out\n", TextHelpers.numberOfBytes(_outBytes));
+			} while (!eof);
 			commitOutput(out);
-		} finally {
 			closeInput(in);
+		} finally {
 			closeOutput(out);
+			closeInput(in);
 		}
-	}
-
-	private void verifyParameters(boolean generateIfNotSpecified) throws Exception {
-		verifyCommon();
-		verifyKey();
-		verifyIV(generateIfNotSpecified);
-		verifyNonce(generateIfNotSpecified);
 	}
 
 	private void verifyCommon() throws Exception {
@@ -630,6 +641,12 @@ public class MyCryptographyUtilityApplication {
 		if ("-".equals(_inFileName) && "-".equals(_ppFileName)) {
 			throw new RuntimeException("Both input data and passphrase are specified to be read from standard input.");
 		}
+	}
+
+	private void verifyParameters(boolean generateIfNotSpecified) throws Exception {
+		verifyKey();
+		verifyIV(generateIfNotSpecified);
+		verifyNonce(generateIfNotSpecified);
 	}
 
 	private void verifyKey() throws Exception {
